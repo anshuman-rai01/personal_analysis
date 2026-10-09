@@ -21,9 +21,10 @@ import { useAuth } from '../context/AuthContext.tsx';
 interface DashboardViewProps {
   setActiveTab: (tab: ActiveTab) => void;
   onOpenQuickLog: () => void;
+  onOpenAssistant?: () => void;
 }
 
-export const DashboardView: React.FC<DashboardViewProps> = ({ setActiveTab, onOpenQuickLog }) => {
+export const DashboardView: React.FC<DashboardViewProps> = ({ setActiveTab, onOpenQuickLog, onOpenAssistant }) => {
   const { getAuthHeaders } = useAuth();
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [recentStudy, setRecentStudy] = useState<StudySession[]>([]);
@@ -122,6 +123,17 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ setActiveTab, onOp
             <div>
               <p className="text-xs font-bold text-white group-hover:text-pink-200">What-If Simulation</p>
               <p className="text-[11px] text-purple-200">Decision sliders &amp; risk</p>
+            </div>
+            <ArrowUpRight className="w-4 h-4 text-purple-300 group-hover:text-white transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+          </button>
+
+          <button
+            onClick={onOpenAssistant}
+            className="flex items-center justify-between p-3 rounded-xl bg-white/10 hover:bg-white/20 border border-white/15 text-left transition-all group backdrop-blur-sm"
+          >
+            <div>
+              <p className="text-xs font-bold text-white group-hover:text-pink-200">AI Assistant</p>
+              <p className="text-[11px] text-purple-200">Tool-calling &amp; forecasting</p>
             </div>
             <ArrowUpRight className="w-4 h-4 text-purple-300 group-hover:text-white transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
           </button>

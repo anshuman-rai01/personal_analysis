@@ -15,11 +15,13 @@ import { ForecastingView } from './components/ForecastingView.tsx';
 import { SimulationView } from './components/SimulationView.tsx';
 import { AuthView } from './components/AuthView.tsx';
 import { QuickLogModal } from './components/QuickLogModal.tsx';
+import { AssistantWidget } from './components/assistant/AssistantWidget.tsx';
 
 function MainApp() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('dashboard');
   const [quickLogOpen, setQuickLogOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [assistantOpenSignal, setAssistantOpenSignal] = useState(0);
 
   const handleQuickLogSuccess = () => {
     setRefreshKey((k) => k + 1);
@@ -40,6 +42,7 @@ function MainApp() {
           <DashboardView
             setActiveTab={setActiveTab}
             onOpenQuickLog={() => setQuickLogOpen(true)}
+            onOpenAssistant={() => setAssistantOpenSignal(s => s + 1)}
           />
         )}
         {activeTab === 'study' && <StudyView />}
@@ -70,6 +73,12 @@ function MainApp() {
         isOpen={quickLogOpen}
         onClose={() => setQuickLogOpen(false)}
         onSuccess={handleQuickLogSuccess}
+      />
+
+      {/* Floating AI Assistant Widget */}
+      <AssistantWidget
+        onDataChanged={() => setRefreshKey(k => k + 1)}
+        openSignal={assistantOpenSignal}
       />
     </div>
   );

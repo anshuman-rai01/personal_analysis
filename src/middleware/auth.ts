@@ -7,6 +7,7 @@ export interface AuthRequest extends Request {
     uid: string;
     email?: string;
     name?: string;
+    authenticated: boolean;
   };
 }
 
@@ -24,6 +25,7 @@ export const requireAuth = async (
         uid: decodedToken.uid,
         email: decodedToken.email,
         name: decodedToken.name,
+        authenticated: true,
       };
       return next();
     } catch (error) {
@@ -37,6 +39,7 @@ export const requireAuth = async (
     uid: guestUid,
     email: `${guestUid}@omnilife.local`,
     name: 'OmniLife User',
+    authenticated: false,
   };
   next();
 };

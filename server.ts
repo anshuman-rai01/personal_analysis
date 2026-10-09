@@ -24,6 +24,7 @@ import {
   generatePresentationScriptPDF,
   generateIEEEPaperPDF,
 } from './src/lib/pdfGenerator.ts';
+import { assistantRouter } from './src/routes/assistant.ts';
 
 const execFileAsync = promisify(execFile);
 const app = express();
@@ -737,6 +738,9 @@ app.delete('/api/simulation/:id', requireAuth, async (req: AuthRequest, res) => 
     res.status(500).json({ error: 'Failed to delete scenario' });
   }
 });
+
+// ---------------- ASSISTANT API ROUTE ----------------
+app.use('/api/assistant', assistantRouter);
 
 // ---------------- DASHBOARD AGGREGATED METRICS ROUTE ----------------
 app.get('/api/dashboard/overview', requireAuth, async (req: AuthRequest, res) => {

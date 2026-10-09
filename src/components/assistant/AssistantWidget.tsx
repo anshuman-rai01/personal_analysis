@@ -291,6 +291,14 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({
                             key={block.id}
                             block={block}
                             cardState={cardStates[block.id]}
+                            onStateChange={(bId, state) => setCardStates(prev => ({ ...prev, [bId]: state }))}
+                            onDataChanged={onDataChanged}
+                            onAppendMessage={text => {
+                              setMessages(prev => [
+                                ...prev,
+                                { id: 'sys_' + Date.now(), role: 'assistant', text },
+                              ]);
+                            }}
                             renderCustomBlock={renderCustomBlock}
                           />
                         ))}

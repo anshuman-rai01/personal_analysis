@@ -166,9 +166,9 @@ export function generateProjectGuidePDF(): Promise<Buffer> {
             'Interactive sliders (study hours, deep work, sleep, savings rate, expected returns, screen time) dynamically recalculating projected curves vs baselines. Features quantified Risk Analysis (0-100) and actionable strategic recommendations with gain estimates.',
         },
         {
-          name: 'AI Chatbot (Gemini 3.8 Mentor)',
+          name: 'AI Assistant (Gemini Tool-Calling Assistant)',
           summary:
-            'Context-aware assistant grounded in the user live database snapshot. Suggests prompt shortcuts and answers questions about study schedules, money allocations, and ML forecast tradeoffs.',
+            'Interactive tool-calling assistant that analyzes user metrics, forecasts finances, prepares confirmed records, and draws inline charts and tables.',
         },
       ];
 
@@ -294,14 +294,14 @@ export function generatePresentationScriptPDF(): Promise<Buffer> {
           title: 'Opening Hook & Problem Statement',
           action: '[Action: Stand confident, share your screen showing the OmniLife Studio Dashboard]',
           script:
-            '"Good morning / afternoon! Today I am excited to present OmniLife Studio. Most of us juggle our lives across multiple disconnected apps: one for studying or flashcards, a budgeting app for money, a habit tracker, and scattered to-do lists. The problem is that these life domains compound together in the real world: when you sleep poorly, your study focus drops; when you overspend, financial anxiety affects your routine.\n\nI built OmniLife Studio to unify Study, Money, Habits, and Goals into a single system powered by a PostgreSQL relational database. But more than just logging data, OmniLife features a 1,200-record Machine Learning forecasting engine, an interactive What-If Decision Simulator, and an AI Mentor powered by Gemini that understands your actual live numbers."',
+            '"Good morning / afternoon! Today I am excited to present OmniLife Studio. Most of us juggle our lives across multiple disconnected apps: one for studying or flashcards, a budgeting app for money, a habit tracker, and scattered to-do lists. The problem is that these life domains compound together in the real world: when you sleep poorly, your study focus drops; when you overspend, financial anxiety affects your routine.\n\nI built OmniLife Studio to unify Study, Money, Habits, and Goals into a single system powered by a PostgreSQL relational database. But more than just logging data, OmniLife features a 1,200-record Machine Learning forecasting engine, an interactive What-If Decision Simulator, and a tool-calling AI Assistant powered by Gemini that understands your actual live numbers."',
         },
         {
           time: '0:45 - 1:45',
           title: 'Technology Stack & Engineering Architecture',
           action: '[Action: Briefly point to the top navigation and PostgreSQL badge]',
           script:
-            '"Before diving into the features, here is how the architecture is engineered under the hood:\n\n• Frontend: Built with React 19 and TypeScript, styled using Tailwind CSS in a clean White, Purple, and Pink design system with custom interactive SVG charts and celebratory feedback.\n• Database: Backed by Cloud SQL PostgreSQL with Drizzle ORM. Every study session, financial transaction, habit streak, and saved scenario is stored in typed relational tables.\n• Backend & ML: A Node.js Express server acts as the primary API, while a dedicated Python 3 engine handles dataset manipulation, ridge regression model training on 1,200 rows with 6 features, and sensitivity curve projections.\n• AI Integration: Google Gemini 3.8 Flash is integrated server-side. Crucially, the server injects a real-time summary of the user\'s database into Gemini\'s context so it acts as an informed advisor rather than a generic chatbot."',
+            '"Before diving into the features, here is how the architecture is engineered under the hood:\n\n• Frontend: Built with React 19 and TypeScript, styled using Tailwind CSS in a clean White, Purple, and Pink design system with custom interactive SVG charts and celebratory feedback.\n• Database: Backed by Cloud SQL PostgreSQL with Drizzle ORM. Every study session, financial transaction, habit streak, and saved scenario is stored in typed relational tables.\n• Backend & ML: A Node.js Express server acts as the primary API, while a dedicated Python 3 engine handles dataset manipulation, ridge regression model training on 1,200 rows with 6 features, and sensitivity curve projections.\n• AI Integration: Google Gemini is integrated server-side with structured function calling. The tool-calling assistant computes verified metrics, generates forecasts, and prepares human-confirmed actions rather than relying on ungrounded assumptions."',
         },
         {
           time: '1:45 - 3:00',
@@ -320,9 +320,9 @@ export function generatePresentationScriptPDF(): Promise<Buffer> {
         {
           time: '4:15 - 5:30',
           title: 'Advanced Feature: What-If Decision Simulation & Gemini AI',
-          action: '[Action: Switch to Simulation tab, adjust the Study Hours and Sleep sliders, then open AI Chatbot]',
+          action: '[Action: Switch to Simulation tab, adjust the Study Hours and Sleep sliders, then open the floating AI Assistant]',
           script:
-            '"Next is the What-If Decision Simulation Engine. Often we ask: \'What happens if I study 7 hours instead of 4?\' or \'What if I increase my savings rate to 35%?\'\n\nUsing interactive sliders, the engine dynamically recalculates the projected trajectory curve against the status-quo baseline in real time. It computes a quantitative Risk Score (0-100)—warning of burnout risk if sleep drops too low, or frugality fatigue if savings cuts are too harsh—and outputs prescriptive strategic recommendations.\n\nFinally, the AI Chatbot powered by Gemini 3.8 Flash is grounded in the database. When I ask, \'Based on my current study hours and savings, how should I schedule my weekend?\', it reads the user\'s real logs from PostgreSQL and gives advice specifically tailored to their actual numbers."',
+            '"Next is the What-If Decision Simulation Engine. Often we ask: \'What happens if I study 7 hours instead of 4?\' or \'What if I increase my savings rate to 35%?\'\n\nUsing interactive sliders, the engine dynamically recalculates the projected trajectory curve against the status-quo baseline in real time. It computes a quantitative Risk Score (0-100)—warning of burnout risk if sleep drops too low, or frugality fatigue if savings cuts are too harsh—and outputs prescriptive strategic recommendations.\n\nFinally, the floating AI Assistant powered by Gemini tool-calling is grounded in the database. When I ask, \'Based on my current study hours and savings, how should I schedule my weekend?\', it executes specialized tools to compute verified figures from PostgreSQL and gives advice specifically tailored to their actual numbers."',
         },
         {
           time: '5:30 - 6:30',
@@ -551,7 +551,7 @@ export function generateIEEEPaperPDF(): Promise<Buffer> {
         },
         {
           num: 'V.',
-          title: 'RETRIEVAL-GROUNDED GEMINI AI MENTOR (INR / ₹)',
+          title: 'TOOL-CALLING GEMINI AI ASSISTANT (INR / ₹)',
           content:
             'To prevent hallucinations, the Express server queries the live PostgreSQL snapshot (recent study focus scores, active habit streaks, net financial cash flows) and injects this structured context into the system prompt before calling Google GenAI SDK.\n\nFurthermore, all financial calculations, savings rates, and investment recommendations are localized strictly in Indian Rupees (₹ / INR). The server employs a resilient multi-model cascade (gemini-3.7-flash -> gemini-3.5-flash -> gemini-3.8-flash) guaranteeing sub-second response times without downtime.',
         },

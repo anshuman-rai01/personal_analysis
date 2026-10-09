@@ -127,17 +127,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ setActiveTab, onOp
           </button>
 
           <button
-            onClick={() => setActiveTab('chatbot')}
-            className="flex items-center justify-between p-3 rounded-xl bg-white/10 hover:bg-white/20 border border-white/15 text-left transition-all group backdrop-blur-sm"
-          >
-            <div>
-              <p className="text-xs font-bold text-white group-hover:text-pink-200">Gemini AI Mentor</p>
-              <p className="text-[11px] text-purple-200">Live database context</p>
-            </div>
-            <ArrowUpRight className="w-4 h-4 text-purple-300 group-hover:text-white transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-          </button>
-
-          <button
             onClick={onOpenQuickLog}
             className="flex items-center justify-between p-3 rounded-xl bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white font-bold text-left transition-all group shadow-md"
           >

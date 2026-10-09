@@ -7,7 +7,6 @@ import {
   Target,
   TrendingUp,
   SlidersHorizontal,
-  Bot,
   Plus,
   LogIn,
   LogOut,
@@ -25,7 +24,6 @@ export type ActiveTab =
   | 'goals'
   | 'forecasting'
   | 'simulation'
-  | 'chatbot'
   | 'auth';
 
 interface NavbarProps {
@@ -49,7 +47,6 @@ export const Navbar: React.FC<NavbarProps> = ({
     { id: 'goals', label: 'Goals', icon: <Target className="w-4 h-4" /> },
     { id: 'forecasting', label: 'Forecasting (ML)', icon: <TrendingUp className="w-4 h-4" />, badge: '1,200' },
     { id: 'simulation', label: 'Simulation', icon: <SlidersHorizontal className="w-4 h-4" />, badge: 'What-If' },
-    { id: 'chatbot', label: 'AI Chatbot', icon: <Bot className="w-4 h-4" />, badge: 'Gemini' },
   ];
 
   return (

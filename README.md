@@ -3,7 +3,7 @@
 
 OmniLife Studio is a full-stack personal analytics and decision-support web platform. It unifies four fundamental pillars of self-mastery—**Cognitive Study Tracking, Financial Management (in Indian Rupees ₹), Routine Habit Consistency, and SMART Goal Roadmaps**—into a single relational data platform.
 
-Beyond passive logging, OmniLife features a **1,200-record multivariate Machine Learning predictive engine**, an interactive **What-If Decision Simulator** with quantitative risk modeling, and a server-side **Google Gemini AI Mentor** grounded in real-time database state.
+Beyond passive logging, OmniLife features a **1,200-record multivariate Machine Learning predictive engine**, an interactive **What-If Decision Simulator** with quantitative risk modeling, and a server-side **Google Gemini Tool-Calling Assistant** for analytics, forecasts, and guided record management.
 
 ---
 
@@ -48,10 +48,10 @@ Beyond passive logging, OmniLife features a **1,200-record multivariate Machine 
 * **Quantitative Risk Score (0–100)**: Evaluates burnout risk from sleep deprivation and frugality fatigue from excessive spending cuts.
 * **Strategic Prescriptions**: Actionable recommendations with projected quantified gains.
 
-### 8. Gemini AI Mentor (Retrieval-Grounded)
-* **Multi-Model Resilience**: Intelligent fallback cascade across `gemini-3.7-flash`, `gemini-3.5-flash`, and `gemini-3.8-flash`.
-* **Database-Grounded Context**: Server queries user records from Cloud SQL PostgreSQL before prompting Gemini, ensuring factual grounding and zero hallucinations.
-* **Currency Enforcement**: Strict generation in **Indian Rupees (₹)**.
+### 8. Gemini Tool-Calling Assistant
+* **Tool-Calling Architecture**: Stateless Express agent executing structured tools (`build_report`, `list_entries`, `get_forecast`, `propose_entry`, `propose_delete`).
+* **Client-Confirmed Actions**: Writes and deletes require explicit user confirmation cards before execution.
+* **Currency Enforcement**: Strict numerical generation in **Indian Rupees (₹)**.
 
 ### 9. Authentication & User Management
 * **Dual-Mode System**:
@@ -98,7 +98,7 @@ Beyond passive logging, OmniLife features a **1,200-record multivariate Machine 
 │   ├── main.tsx                    # React DOM client mount
 │   ├── components/
 │   │   ├── AuthView.tsx            # Login, Registration & Demo user management
-│   │   ├── ChatbotView.tsx         # Gemini AI Mentor interface (₹ INR)
+│   │   ├── assistant/              # Floating AI Assistant widget & block renderers
 │   │   ├── DashboardView.tsx       # Central KPI analytics & charts
 │   │   ├── FinanceView.tsx         # Financial transactions ledger (₹ INR)
 │   │   ├── ForecastingView.tsx     # 1,200-record ML regression & projections

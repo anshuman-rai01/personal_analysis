@@ -4,7 +4,6 @@ import path from 'path';
 import fs from 'fs';
 import { execFile } from 'child_process';
 import { promisify } from 'util';
-import { GoogleGenAI } from '@google/genai';
 import { createServer as createViteServer } from 'vite';
 import { db } from './src/db/index.ts';
 import {
@@ -32,15 +31,6 @@ const PORT = 3000;
 
 app.use(express.json({ limit: '10mb' }));
 
-// Initialize Gemini SDK with telemetry header per guidelines
-const ai = new GoogleGenAI({
-  apiKey: process.env.GEMINI_API_KEY,
-  httpOptions: {
-    headers: {
-      'User-Agent': 'aistudio-build',
-    },
-  },
-});
 
 // Seed default data for first-time users if empty
 async function seedDefaultDataIfEmpty(uid: string) {
@@ -745,103 +735,6 @@ app.delete('/api/simulation/:id', requireAuth, async (req: AuthRequest, res) => 
     res.json({ success: true, id });
   } catch (error: any) {
     res.status(500).json({ error: 'Failed to delete scenario' });
-  }
-});
-
-// ---------------- GEMINI AI CHATBOT ROUTE ----------------
-app.post('/api/chat', requireAuth, async (req: AuthRequest, res) => {
-  try {
-    const uid = req.user!.uid;
-    const { message, history } = req.body;
-
-    if (!message) {
-      return res.status(400).json({ error: 'Prompt is required.' });
-    }
-
-    // Fetch user context across modules to make responses uniquely grounded & personalized
-    const [userStudy, userFinance, userHabits, userGoals] = await Promise.all([
-      db.select().from(studySessions).where(eq(studySessions.userId, uid)).limit(5),
-      db.select().from(financeTransactions).where(eq(financeTransactions.userId, uid)).limit(6),
-      db.select().from(habits).where(eq(habits.userId, uid)),
-      db.select().from(goals).where(eq(goals.userId, uid)),
-    ]);
-
-    const studySummary = userStudy.map(s => `${s.subject} (${s.durationMinutes}m, focus: ${s.focusScore}/10)`).join(', ') || 'No study sessions recorded yet';
-    const financeSummary = userFinance.map(f => `${f.type}: ₹${f.amount.toLocaleString('en-IN')} on ${f.category}`).join(', ') || 'No transactions logged yet';
-    const habitSummary = userHabits.map(h => `${h.name} (streak: ${h.currentStreak}d)`).join(', ') || 'No habits added yet';
-    const goalSummary = userGoals.map(g => `${g.title} (${g.currentValue}/${g.targetValue} ${g.unit})`).join(', ') || 'No goals set';
-
-    const systemPrompt = `You are OmniLife AI, an intelligent, empathetic, and scientifically rigorous personal mentor and life optimization assistant.
-You assist the user across four interconnected domains: Study & Learning, Financial Growth, Habits & Consistency, and Goal Achievement.
-You also specialize in explaining Machine Learning forecasts (1,200 records x 6 features), sensitivity analysis, and What-If decision simulations.
-
-CRITICAL CURRENCY REQUIREMENT:
-All monetary values, finances, income, expenses, budgets, savings, investments, and projections MUST be formatted in Indian Rupees (₹ / INR). Never use dollar signs ($) or USD. Example: ₹2,500, ₹10,000, ₹50,000, ₹1,20,000.
-
-Current User Profile & Live Database Context:
-- Recent Study: ${studySummary}
-- Recent Finances (in ₹ INR): ${financeSummary}
-- Active Habits: ${habitSummary}
-- Target Goals: ${goalSummary}
-
-Guidelines:
-1. Provide actionable, concise, motivating advice referencing their actual metrics where relevant.
-2. Structure answers with clean bullet points or key takeaways.
-3. Express all financial calculations, savings rates, emergency funds, and investment targets strictly in Indian Rupees (₹).
-4. If they ask about simulation or forecasting, explain the mathematical tradeoffs (e.g. sleep vs deep work vs burnout risk; savings rate vs compounding timeline).
-5. Be supportive, concise, and encourage compounding daily consistency.`;
-
-    const chatContents: any[] = [];
-    if (Array.isArray(history) && history.length > 0) {
-      for (const h of history.slice(-6)) {
-        chatContents.push({
-          role: h.role === 'assistant' ? 'model' : 'user',
-          parts: [{ text: h.content }],
-        });
-      }
-    }
-    chatContents.push({
-      role: 'user',
-      parts: [{ text: message }],
-    });
-
-    // Multi-model resilience cascade: prioritize active responsive models
-    const MODEL_CANDIDATES = [
-      'gemini-3.7-flash',
-      'gemini-3.5-flash',
-      'gemini-3.8-flash',
-    ];
-
-    let aiResponseText: string | null = null;
-
-    for (const modelName of MODEL_CANDIDATES) {
-      try {
-        const response = await ai.models.generateContent({
-          model: modelName,
-          contents: chatContents,
-          config: {
-            systemInstruction: systemPrompt,
-            temperature: 0.7,
-          },
-        });
-        if (response && response.text) {
-          aiResponseText = response.text;
-          break;
-        }
-      } catch (err: any) {
-        console.warn(`Model ${modelName} transient issue, trying next candidate:`, err.message || err);
-      }
-    }
-
-    if (!aiResponseText) {
-      // Graceful local synthesis based on actual database metrics
-      aiResponseText = `Here is your personal intelligence assessment based on your live database context:\n\n• **Study & Learning:** You have recorded recent sessions (${studySummary}). Maintain high focus blocks of 60-90 minutes with zero distractions.\n• **Money & Savings (₹):** Tracking your money flow (${financeSummary}). Keep your monthly savings velocity above 25% to compound your wealth in Indian Rupees (₹).\n• **Habits & Momentum:** Your active habits (${habitSummary}) are driving consistency. Complete early morning check-ins to lock in positive momentum.\n• **Target Goals:** Your roadmap (${goalSummary}) is progressing. Check off micro-milestones daily to achieve full velocity!`;
-    }
-
-    res.json({ response: aiResponseText });
-  } catch (error: any) {
-    console.error('Gemini chat error:', error);
-    res.status(500).json({ error: error.message || 'AI Chatbot service error' });
   }
 });
 

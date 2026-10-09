@@ -13,7 +13,6 @@ import { HabitsView } from './components/HabitsView.tsx';
 import { GoalsView } from './components/GoalsView.tsx';
 import { ForecastingView } from './components/ForecastingView.tsx';
 import { SimulationView } from './components/SimulationView.tsx';
-import { ChatbotView } from './components/ChatbotView.tsx';
 import { AuthView } from './components/AuthView.tsx';
 import { QuickLogModal } from './components/QuickLogModal.tsx';
 
@@ -49,7 +48,6 @@ function MainApp() {
         {activeTab === 'goals' && <GoalsView />}
         {activeTab === 'forecasting' && <ForecastingView />}
         {activeTab === 'simulation' && <SimulationView />}
-        {activeTab === 'chatbot' && <ChatbotView />}
         {activeTab === 'auth' && <AuthView onNavigateToDashboard={() => setActiveTab('dashboard')} />}
       </main>
 
@@ -62,7 +60,7 @@ function MainApp() {
             <span>·</span>
             <span>Python ML Engine</span>
             <span>·</span>
-            <span>Gemini AI (₹ INR)</span>
+            <span>Gemini AI Assistant (₹ INR)</span>
           </div>
         </div>
       </footer>

@@ -1,6 +1,9 @@
 import React from 'react';
 import { Block } from '../../lib/assistantTypes.ts';
 import { NoticeBlock } from './NoticeBlock.tsx';
+import { MetricsBlock } from './MetricsBlock.tsx';
+import { ChartBlock } from './ChartBlock.tsx';
+import { TableBlock } from './TableBlock.tsx';
 
 export interface CardState {
   status: 'idle' | 'saving' | 'saved' | 'deleting' | 'deleted' | 'cancelled' | 'error';
@@ -25,10 +28,18 @@ export const BlockRenderer: React.FC<BlockRendererProps> = ({
   onCancelCard,
   renderCustomBlock,
 }) => {
-  // Registry-based rendering
   if (!block || !block.type) return null;
 
   switch (block.type) {
+    case 'metrics':
+      return <MetricsBlock block={block} />;
+
+    case 'chart':
+      return <ChartBlock block={block} />;
+
+    case 'table':
+      return <TableBlock block={block} />;
+
     case 'notice':
       return <NoticeBlock block={block} />;
 

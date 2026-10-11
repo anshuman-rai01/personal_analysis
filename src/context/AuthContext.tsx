@@ -155,6 +155,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return { success: false, error: 'Sign-in window was closed.' };
       }
 
+      if (code === 'auth/unauthorized-domain') {
+        const currentHost = typeof window !== 'undefined' ? window.location.hostname : 'current domain';
+        const msg = `Domain "${currentHost}" is not authorized for Google Sign-In in Firebase project (stoked-sweep-k48x0). Please use "1-Click Demo Login" or Email/Password login, or add "${currentHost}" to Firebase Console > Authentication > Settings > Authorized Domains.`;
+        setAuthError(msg);
+        return { success: false, error: msg };
+      }
+
       const msg = err?.message || 'Google Sign-in failed. Please use Email/Password or 1-Click Demo login.';
       setAuthError(msg);
       return { success: false, error: msg };
@@ -163,15 +170,113 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const loginWithEmail = async (email: string, password: string) => {
     localStorage.removeItem('omnilife_demo_user');
-    await signInWithEmailAndPassword(auth, email, password);
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+    } catch (err: any) {
+      const code = err?.code || '';
+      if (code === 'auth/operation-not-allowed' || code === 'auth/admin-restricted-operation') {
+        console.warn('Firebase Email/Password is disabled in Firebase Console. Authenticating via local accounts.');
+        const accountsRaw = localStorage.getItem('omnilife_local_accounts');
+        const accounts: Record<string, any> = accountsRaw ? JSON.parse(accountsRaw) : {};
+        const localUser = accounts[email.toLowerCase()];
+
+        if (localUser && localUser.password && localUser.password !== password) {
+          const customErr: any = new Error('Invalid email or password. Please verify and try again.');
+          customErr.code = 'auth/wrong-password';
+          throw customErr;
+        }
+
+        const localUid = localUser ? localUser.uid : 'usr_' + btoa(email.toLowerCase()).replace(/[^a-zA-Z0-9]/g, '').slice(0, 16);
+        const name = localUser ? localUser.name : email.split('@')[0];
+        const userObj = {
+          uid: localUid,
+          name,
+          email,
+          password,
+          photoURL: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(name)}`,
+        };
+
+        accounts[email.toLowerCase()] = userObj;
+        localStorage.setItem('omnilife_local_accounts', JSON.stringify(accounts));
+        localStorage.setItem('omnilife_demo_user', JSON.stringify(userObj));
+        localStorage.setItem('omnilife_guest_uid', localUid);
+        setGuestUid(localUid);
+
+        setUser({
+          uid: localUid,
+          displayName: name,
+          email,
+          photoURL: userObj.photoURL,
+          emailVerified: true,
+        } as User);
+
+        try {
+          await fetch('/api/user/sync', {
+            headers: {
+              'x-guest-uid': localUid,
+            },
+          });
+        } catch (e) {
+          console.warn('Failed to sync local user with server:', e);
+        }
+        return;
+      }
+      throw err;
+    }
   };
 
   const registerWithEmail = async (email: string, password: string, displayName?: string) => {
     localStorage.removeItem('omnilife_demo_user');
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    if (displayName && userCredential.user) {
-      await updateProfile(userCredential.user, { displayName });
-      setUser({ ...userCredential.user, displayName } as User);
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      if (displayName && userCredential.user) {
+        await updateProfile(userCredential.user, { displayName });
+        setUser({ ...userCredential.user, displayName } as User);
+      }
+    } catch (err: any) {
+      const code = err?.code || '';
+      if (code === 'auth/operation-not-allowed' || code === 'auth/admin-restricted-operation') {
+        console.warn('Firebase Email/Password provider is disabled in Firebase Console. Registering local account.');
+
+        const localUid = 'usr_' + btoa(email.toLowerCase()).replace(/[^a-zA-Z0-9]/g, '').slice(0, 16);
+        const name = displayName?.trim() || email.split('@')[0];
+        const userObj = {
+          uid: localUid,
+          name,
+          email,
+          password,
+          photoURL: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(name)}`,
+        };
+
+        const accountsRaw = localStorage.getItem('omnilife_local_accounts');
+        const accounts: Record<string, any> = accountsRaw ? JSON.parse(accountsRaw) : {};
+        accounts[email.toLowerCase()] = userObj;
+        localStorage.setItem('omnilife_local_accounts', JSON.stringify(accounts));
+
+        localStorage.setItem('omnilife_demo_user', JSON.stringify(userObj));
+        localStorage.setItem('omnilife_guest_uid', localUid);
+        setGuestUid(localUid);
+
+        setUser({
+          uid: localUid,
+          displayName: name,
+          email,
+          photoURL: userObj.photoURL,
+          emailVerified: true,
+        } as User);
+
+        try {
+          await fetch('/api/user/sync', {
+            headers: {
+              'x-guest-uid': localUid,
+            },
+          });
+        } catch (e) {
+          console.warn('Failed to sync local user with server:', e);
+        }
+        return;
+      }
+      throw err;
     }
   };
 

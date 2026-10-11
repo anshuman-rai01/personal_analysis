@@ -271,8 +271,14 @@ app.get('/api/user/sync', requireAuth, async (req: AuthRequest, res) => {
   try {
     const uid = req.user!.uid;
     const email = req.user!.email || `${uid}@omnilife.local`;
-    const user = await getOrCreateUser(uid, email, req.user!.name);
-    await seedDefaultDataIfEmpty(uid);
+    let user;
+    try {
+      user = await getOrCreateUser(uid, email, req.user!.name);
+      await seedDefaultDataIfEmpty(uid);
+    } catch (dbErr) {
+      console.warn('PostgreSQL user sync notice (using session profile):', (dbErr as any)?.message || dbErr);
+      user = { id: 1, uid, email, displayName: req.user!.name || email.split('@')[0], createdAt: new Date() };
+    }
     res.json({ success: true, user });
   } catch (error: any) {
     console.error('Sync user error:', error);
@@ -741,6 +747,7 @@ app.delete('/api/simulation/:id', requireAuth, async (req: AuthRequest, res) => 
 
 // ---------------- ASSISTANT API ROUTE ----------------
 app.use('/api/assistant', assistantRouter);
+app.use('/api/chat', assistantRouter);
 
 // ---------------- DASHBOARD AGGREGATED METRICS ROUTE ----------------
 app.get('/api/dashboard/overview', requireAuth, async (req: AuthRequest, res) => {

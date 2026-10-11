@@ -114,11 +114,14 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({
     setMessages(newMessages);
     setIsLoading(true);
 
-    // Format last 12 turns for payload
-    const historyPayload = newMessages.slice(-12).map(m => ({
-      role: m.role,
-      text: m.text,
-    }));
+    // Format last 12 turns for payload (exclude error messages and empty texts)
+    const historyPayload = newMessages
+      .filter(m => !m.isError && m.text && m.text.trim().length > 0)
+      .slice(-12)
+      .map(m => ({
+        role: m.role,
+        text: m.text,
+      }));
 
     try {
       abortControllerRef.current?.abort();

@@ -2,6 +2,7 @@
  * Gemini LLM Adapter with thought signature preservation and exponential retry
  */
 
+import 'dotenv/config';
 import { GoogleGenAI, ApiError } from '@google/genai';
 import { LLMClient, LLMGenerateParams, LLMGenerateResult, ToolCall } from './types.ts';
 
@@ -103,16 +104,17 @@ export function createGeminiClient(apiKey?: string): LLMClient {
       const isInitialRound = !params.rawContents || params.rawContents.length <= params.messages.length;
 
       // Model candidate cascade (only applicable at round 0 before model turns)
-      const primaryModel = params.model || process.env.GEMINI_MODEL || 'gemini-3.7-flash';
+      const primaryModel = params.model || process.env.GEMINI_MODEL || 'gemini-3.6-flash';
       const candidateModels = isInitialRound
-        ? [primaryModel, 'gemini-3.5-flash', 'gemini-3.8-flash'].filter((m, i, arr) => arr.indexOf(m) === i)
+        ? [primaryModel, 'gemini-3.5-flash', 'gemini-3.6-flash', 'gemini-flash-latest'].filter((m, i, arr) => arr.indexOf(m) === i)
         : [primaryModel];
 
       let lastError: unknown = null;
 
       for (const modelToTry of candidateModels) {
         // Attempt with retry on 429/503/network
-        const delays = [1500, 3000];
+        const isLastCandidate = !isInitialRound || candidateModels.indexOf(modelToTry) === candidateModels.length - 1;
+        const delays = !isLastCandidate ? [1000] : [1500, 3000];
         let attempt = 0;
 
         while (attempt <= delays.length) {
@@ -171,10 +173,14 @@ export function createGeminiClient(apiKey?: string): LLMClient {
             // Log failures strictly with error class name and status only (no prompt or text)
             const errName = err?.constructor?.name || 'Error';
             const status = err?.status || (err instanceof ApiError ? err.status : undefined);
-            console.error(`[Assistant LLM] Generation attempt failed: class=${errName} status=${status ?? 'none'}`);
+            console.error(`[Assistant LLM] Generation attempt failed: model=${modelToTry} class=${errName} status=${status ?? 'none'}`);
 
             if (err?.name === 'AbortError' || err?.message?.includes('aborted')) {
-              throw new AssistantLLMError('timeout', 'LLM request timed out', 408);
+              if (isLastCandidate) {
+                throw new AssistantLLMError('timeout', 'LLM request timed out', 408);
+              }
+              // If not the last candidate, break out to try the next model candidate
+              break;
             }
 
             if (isRetryable(err) && attempt < delays.length) {

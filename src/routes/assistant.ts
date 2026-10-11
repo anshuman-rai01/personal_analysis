@@ -1,7 +1,4 @@
-/**
- * Express router for OmniLife Assistant chat endpoint
- */
-
+import 'dotenv/config';
 import { Router } from 'express';
 import { AuthRequest, requireAuth } from '../middleware/auth.ts';
 import { checkRateLimit } from '../assistant/ratelimit.ts';
@@ -12,7 +9,7 @@ import { TOOL_REGISTRY } from '../assistant/tools/index.ts';
 
 export const assistantRouter = Router();
 
-assistantRouter.post('/chat', requireAuth, async (req: AuthRequest, res) => {
+const handleChat = async (req: AuthRequest, res: any) => {
   try {
     const uid = req.user?.uid || 'guest';
     const authenticated = req.user?.authenticated ?? false;
@@ -59,4 +56,7 @@ assistantRouter.post('/chat', requireAuth, async (req: AuthRequest, res) => {
       outcome: 'unavailable',
     });
   }
-});
+};
+
+assistantRouter.post('/chat', requireAuth, handleChat);
+assistantRouter.post('/', requireAuth, handleChat);

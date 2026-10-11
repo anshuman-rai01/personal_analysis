@@ -68,6 +68,10 @@ export const AuthView: React.FC<AuthViewProps> = ({ onNavigateToDashboard }) => 
     if (code === 'auth/cancelled-popup-request') {
       return 'Sign-in window was closed.';
     }
+    if (code === 'auth/unauthorized-domain') {
+      const currentHost = typeof window !== 'undefined' ? window.location.hostname : 'current domain';
+      return `Domain "${currentHost}" is not authorized for Google Sign-In in Firebase Console. Please use "1-Click Demo Login" below or add "${currentHost}" to Firebase Console > Authentication > Settings > Authorized Domains.`;
+    }
     return err?.message || 'Authentication failed. Please try again.';
   };
 

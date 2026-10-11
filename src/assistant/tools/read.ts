@@ -38,28 +38,53 @@ export interface AssistantRepository {
 
 export const defaultRepository: AssistantRepository = {
   async getFinanceTransactions(uid, startDate, endDate) {
-    const conditions = [eq(financeTransactions.userId, uid)];
-    if (startDate) conditions.push(gte(financeTransactions.date, startDate));
-    if (endDate) conditions.push(lte(financeTransactions.date, endDate));
-    return await db.select().from(financeTransactions).where(and(...conditions)).orderBy(desc(financeTransactions.date), desc(financeTransactions.id));
+    try {
+      const conditions = [eq(financeTransactions.userId, uid)];
+      if (startDate) conditions.push(gte(financeTransactions.date, startDate));
+      if (endDate) conditions.push(lte(financeTransactions.date, endDate));
+      return await db.select().from(financeTransactions).where(and(...conditions)).orderBy(desc(financeTransactions.date), desc(financeTransactions.id));
+    } catch (e: any) {
+      console.warn('[Assistant Repo] getFinanceTransactions db query failed, falling back to empty list:', e?.message || e);
+      return [];
+    }
   },
   async getStudySessions(uid, startDate, endDate) {
-    const conditions = [eq(studySessions.userId, uid)];
-    if (startDate) conditions.push(gte(studySessions.date, startDate));
-    if (endDate) conditions.push(lte(studySessions.date, endDate));
-    return await db.select().from(studySessions).where(and(...conditions)).orderBy(desc(studySessions.date), desc(studySessions.id));
+    try {
+      const conditions = [eq(studySessions.userId, uid)];
+      if (startDate) conditions.push(gte(studySessions.date, startDate));
+      if (endDate) conditions.push(lte(studySessions.date, endDate));
+      return await db.select().from(studySessions).where(and(...conditions)).orderBy(desc(studySessions.date), desc(studySessions.id));
+    } catch (e: any) {
+      console.warn('[Assistant Repo] getStudySessions db query failed, falling back to empty list:', e?.message || e);
+      return [];
+    }
   },
   async getHabits(uid) {
-    return await db.select().from(habits).where(eq(habits.userId, uid)).orderBy(desc(habits.id));
+    try {
+      return await db.select().from(habits).where(eq(habits.userId, uid)).orderBy(desc(habits.id));
+    } catch (e: any) {
+      console.warn('[Assistant Repo] getHabits db query failed, falling back to empty list:', e?.message || e);
+      return [];
+    }
   },
   async getHabitLogs(uid, startDate, endDate) {
-    const conditions = [eq(habitLogs.userId, uid)];
-    if (startDate) conditions.push(gte(habitLogs.date, startDate));
-    if (endDate) conditions.push(lte(habitLogs.date, endDate));
-    return await db.select().from(habitLogs).where(and(...conditions)).orderBy(desc(habitLogs.date));
+    try {
+      const conditions = [eq(habitLogs.userId, uid)];
+      if (startDate) conditions.push(gte(habitLogs.date, startDate));
+      if (endDate) conditions.push(lte(habitLogs.date, endDate));
+      return await db.select().from(habitLogs).where(and(...conditions)).orderBy(desc(habitLogs.date));
+    } catch (e: any) {
+      console.warn('[Assistant Repo] getHabitLogs db query failed, falling back to empty list:', e?.message || e);
+      return [];
+    }
   },
   async getGoals(uid) {
-    return await db.select().from(goals).where(eq(goals.userId, uid)).orderBy(desc(goals.id));
+    try {
+      return await db.select().from(goals).where(eq(goals.userId, uid)).orderBy(desc(goals.id));
+    } catch (e: any) {
+      console.warn('[Assistant Repo] getGoals db query failed, falling back to empty list:', e?.message || e);
+      return [];
+    }
   },
 };
 

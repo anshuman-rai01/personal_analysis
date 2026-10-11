@@ -8,6 +8,8 @@ import {
   Sparkles
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.tsx';
+import { apiFetch, getLocalDateString } from '../lib/apiClient.ts';
+import { AlertBanner } from './common/AlertBanner.tsx';
 
 interface QuickLogModalProps {
   isOpen: boolean;
@@ -19,6 +21,7 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({ isOpen, onClose, o
   const { getAuthHeaders } = useAuth();
   const [activeType, setActiveType] = useState<'study' | 'finance' | 'habit'>('study');
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Study fields
   const [studySubject, setStudySubject] = useState('');
@@ -40,13 +43,18 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({ isOpen, onClose, o
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
     setSubmitting(true);
     try {
+      const today = getLocalDateString();
       if (activeType === 'study') {
         if (!studySubject || !studyTopic) return;
-        await fetch('/api/study', {
+        await apiFetch('/api/study', {
           method: 'POST',
-          headers: getAuthHeaders(),
+          headers: {
+            ...getAuthHeaders(),
+            'Content-Type': 'application/json',
+          },
           body: JSON.stringify({
             subject: studySubject,
             topic: studyTopic,
@@ -54,28 +62,34 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({ isOpen, onClose, o
             technique: studyTechnique,
             focusScore: 8,
             energyScore: 8,
-            date: new Date().toISOString().split('T')[0],
+            date: today,
           }),
         });
       } else if (activeType === 'finance') {
         if (!financeTitle || !financeAmount) return;
-        await fetch('/api/finance', {
+        await apiFetch('/api/finance', {
           method: 'POST',
-          headers: getAuthHeaders(),
+          headers: {
+            ...getAuthHeaders(),
+            'Content-Type': 'application/json',
+          },
           body: JSON.stringify({
             title: financeTitle,
             type: financeType,
             amount: parseFloat(financeAmount),
             category: financeCategory,
             paymentMethod: 'Bank Transfer',
-            date: new Date().toISOString().split('T')[0],
+            date: today,
           }),
         });
       } else {
         if (!habitName) return;
-        await fetch('/api/habits', {
+        await apiFetch('/api/habits', {
           method: 'POST',
-          headers: getAuthHeaders(),
+          headers: {
+            ...getAuthHeaders(),
+            'Content-Type': 'application/json',
+          },
           body: JSON.stringify({
             name: habitName,
             category: habitCategory,
@@ -89,8 +103,9 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({ isOpen, onClose, o
 
       onSuccess();
       onClose();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Quick log failed:', err);
+      setError(err.message || 'Failed to save record to database.');
     } finally {
       setSubmitting(false);
     }
@@ -117,11 +132,20 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({ isOpen, onClose, o
           </button>
         </div>
 
+        {error && (
+          <AlertBanner
+            message="Failed to save record"
+            details={error}
+            variant="error"
+            onDismiss={() => setError(null)}
+          />
+        )}
+
         {/* Type Switcher */}
         <div className="grid grid-cols-3 gap-2 p-1 bg-purple-50/60 rounded-xl border border-purple-100">
           <button
             type="button"
-            onClick={() => setActiveType('study')}
+            onClick={() => { setActiveType('study'); setError(null); }}
             className={`flex items-center justify-center gap-1.5 py-2 text-xs font-bold rounded-lg transition-all ${
               activeType === 'study'
                 ? 'bg-gradient-to-r from-purple-600 to-pink-500 text-white shadow-xs'
@@ -133,7 +157,7 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({ isOpen, onClose, o
           </button>
           <button
             type="button"
-            onClick={() => setActiveType('finance')}
+            onClick={() => { setActiveType('finance'); setError(null); }}
             className={`flex items-center justify-center gap-1.5 py-2 text-xs font-bold rounded-lg transition-all ${
               activeType === 'finance'
                 ? 'bg-gradient-to-r from-purple-600 to-pink-500 text-white shadow-xs'
@@ -145,7 +169,7 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({ isOpen, onClose, o
           </button>
           <button
             type="button"
-            onClick={() => setActiveType('habit')}
+            onClick={() => { setActiveType('habit'); setError(null); }}
             className={`flex items-center justify-center gap-1.5 py-2 text-xs font-bold rounded-lg transition-all ${
               activeType === 'habit'
                 ? 'bg-gradient-to-r from-purple-600 to-pink-500 text-white shadow-xs'

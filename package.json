@@ -4,13 +4,17 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "predev": "tsx scripts/setup-db.ts",
     "dev": "tsx server.ts",
+    "db:setup": "tsx scripts/setup-db.ts",
+    "db:check": "tsx scripts/check-db.ts",
+    "db:push": "drizzle-kit push",
     "start": "tsx server.ts",
     "build": "vite build",
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit",
-    "test": "node --import tsx --test \"src/assistant/**/*.test.ts\""
+    "test": "node --import tsx --test \"src/**/*.test.ts\" \"scripts/**/*.test.ts\""
   },
   "dependencies": {
     "@google/genai": "^2.4.0",

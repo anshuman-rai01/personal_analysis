@@ -16,12 +16,49 @@ import { SimulationView } from './components/SimulationView.tsx';
 import { AuthView } from './components/AuthView.tsx';
 import { QuickLogModal } from './components/QuickLogModal.tsx';
 import { AssistantWidget } from './components/assistant/AssistantWidget.tsx';
+import { onServer500Error } from './lib/apiClient.ts';
+import { AlertBanner } from './components/common/AlertBanner.tsx';
 
 function MainApp() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('dashboard');
   const [quickLogOpen, setQuickLogOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [assistantOpenSignal, setAssistantOpenSignal] = useState(0);
+  const [dbDegraded, setDbDegraded] = useState(false);
+  const [bannerDismissed, setBannerDismissed] = useState(false);
+
+  const checkDbHealth = async () => {
+    try {
+      const res = await fetch('/api/health');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.status === 'degraded') {
+          setDbDegraded(true);
+          setBannerDismissed(false);
+        } else {
+          setDbDegraded(false);
+        }
+      } else {
+        setDbDegraded(true);
+        setBannerDismissed(false);
+      }
+    } catch (_err) {
+      setDbDegraded(true);
+      setBannerDismissed(false);
+    }
+  };
+
+  React.useEffect(() => {
+    // Initial health check on app load
+    checkDbHealth();
+
+    // Re-check whenever any API request fails with 500
+    const unsubscribe = onServer500Error(() => {
+      checkDbHealth();
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   const handleQuickLogSuccess = () => {
     setRefreshKey((k) => k + 1);
@@ -35,6 +72,21 @@ function MainApp() {
         setActiveTab={setActiveTab}
         onOpenQuickLog={() => setQuickLogOpen(true)}
       />
+
+      {/* Global Degraded Database Alert Banner */}
+      {dbDegraded && !bannerDismissed && (
+        <div className="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-4">
+          <AlertBanner
+            variant="warning"
+            message="The database is not reachable or not set up. Records can't be saved. Run npm run db:setup, then reload."
+            onDismiss={() => setBannerDismissed(true)}
+            action={{
+              label: 'Check Health Again',
+              onClick: () => checkDbHealth(),
+            }}
+          />
+        </div>
+      )}
 
       {/* Main Content Viewport */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8" key={refreshKey}>

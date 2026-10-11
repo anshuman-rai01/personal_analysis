@@ -5,7 +5,9 @@ import fs from 'fs';
 import { execFile } from 'child_process';
 import { promisify } from 'util';
 import { createServer as createViteServer } from 'vite';
-import { db } from './src/db/index.ts';
+import { db, pool } from './src/db/index.ts';
+import { validateDbEnv } from './src/db/envCheck.ts';
+import { checkDatabase, getCachedHealth } from './src/db/health.ts';
 import {
   users,
   studySessions,
@@ -31,6 +33,23 @@ const app = express();
 const PORT = 3000;
 
 app.use(express.json({ limit: '10mb' }));
+
+// ---------------- HEALTH CHECK ROUTE ----------------
+app.get('/api/health', async (_req, res) => {
+  try {
+    const health = await getCachedHealth(pool);
+    res.json(health);
+  } catch (_err) {
+    res.json({
+      status: 'degraded',
+      database: {
+        connected: false,
+        schema: 'unknown',
+        missingTables: [],
+      },
+    });
+  }
+});
 
 
 // Seed default data for first-time users if empty
@@ -854,6 +873,37 @@ app.get('/api/download-ieee-paper-pdf', async (_req, res) => {
 
 // Setup Vite middleware for local development
 async function startServer() {
+  // Validate database environment variables on startup
+  const envProblems = validateDbEnv(process.env);
+  if (envProblems.length > 0) {
+    console.warn('\n⚠️  [Database Configuration Warnings]:');
+    for (const problem of envProblems) {
+      console.warn(`   - ${problem}`);
+    }
+    console.warn('');
+  }
+
+  // Non-mutating database startup verification
+  try {
+    const health = await checkDatabase(pool);
+    if (health.status === 'ok') {
+      console.log('✅ Database connected, schema OK');
+    } else if (health.database.connected && health.database.missingTables.length > 0) {
+      console.error(
+        `❌ Database connected, but missing required tables: ${health.database.missingTables.join(', ')}`
+      );
+      console.error('👉 Run "npm run db:setup" to create missing tables.\n');
+    } else {
+      console.error(
+        '❌ Failed to connect to database. Ensure PostgreSQL is running and check your .env credentials.'
+      );
+      console.error('👉 Run "npm run db:setup" to configure and verify your database.\n');
+    }
+  } catch (err: any) {
+    console.error(`❌ Database startup check error: ${err.message || err}`);
+    console.error('👉 Run "npm run db:setup" to set up your database.\n');
+  }
+
   const isProd = process.env.NODE_ENV === 'production';
   if (!isProd) {
     const vite = await createViteServer({

@@ -15,12 +15,15 @@ import {
 import { Goal, GoalMilestone } from '../types/index.ts';
 import { useAuth } from '../context/AuthContext.tsx';
 import confetti from 'canvas-confetti';
+import { apiFetch } from '../lib/apiClient.ts';
+import { AlertBanner } from './common/AlertBanner.tsx';
 
 export const GoalsView: React.FC = () => {
   const { getAuthHeaders } = useAuth();
   const [goalsList, setGoalsList] = useState<Goal[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Goal Form state
   const [title, setTitle] = useState('');
@@ -34,13 +37,13 @@ export const GoalsView: React.FC = () => {
   const fetchGoals = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/goals', { headers: getAuthHeaders() });
-      if (res.ok) {
-        const data = await res.json();
-        setGoalsList(data);
-      }
-    } catch (e) {
+      const data = await apiFetch<Goal[]>('/api/goals', {
+        headers: getAuthHeaders(),
+      });
+      setGoalsList(data);
+    } catch (e: any) {
       console.error('Failed to load goals:', e);
+      setError(e.message || 'Failed to load goals from database.');
     } finally {
       setLoading(false);
     }
@@ -54,6 +57,7 @@ export const GoalsView: React.FC = () => {
     e.preventDefault();
     if (!title.trim() || !targetValue) return;
 
+    setError(null);
     setSubmitting(true);
     try {
       const parsedMilestones = milestonesInput
@@ -61,9 +65,12 @@ export const GoalsView: React.FC = () => {
         .map((s, idx) => ({ id: idx + 1, text: s.trim(), done: false }))
         .filter((m) => m.text.length > 0);
 
-      const res = await fetch('/api/goals', {
+      const newGoal = await apiFetch<Goal>('/api/goals', {
         method: 'POST',
-        headers: getAuthHeaders(),
+        headers: {
+          ...getAuthHeaders(),
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({
           title: title.trim(),
           module,
@@ -75,13 +82,11 @@ export const GoalsView: React.FC = () => {
         }),
       });
 
-      if (res.ok) {
-        const newGoal = await res.json();
-        setGoalsList([newGoal, ...goalsList]);
-        setTitle('');
-      }
-    } catch (e) {
+      setGoalsList([newGoal, ...goalsList]);
+      setTitle('');
+    } catch (e: any) {
       console.error('Create goal failed:', e);
+      setError(e.message || 'Failed to create goal in database.');
     } finally {
       setSubmitting(false);
     }
@@ -113,9 +118,12 @@ export const GoalsView: React.FC = () => {
     }
 
     try {
-      const res = await fetch(`/api/goals/${goal.id}`, {
+      const updated = await apiFetch<Goal>(`/api/goals/${goal.id}`, {
         method: 'PUT',
-        headers: getAuthHeaders(),
+        headers: {
+          ...getAuthHeaders(),
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({
           milestones: updatedMilestones,
           currentValue: newCurrent,
@@ -123,26 +131,23 @@ export const GoalsView: React.FC = () => {
         }),
       });
 
-      if (res.ok) {
-        const updated = await res.json();
-        setGoalsList(goalsList.map((g) => (g.id === goal.id ? updated : g)));
-      }
-    } catch (e) {
+      setGoalsList(goalsList.map((g) => (g.id === goal.id ? updated : g)));
+    } catch (e: any) {
       console.error('Failed to update goal milestone:', e);
+      setError(e.message || 'Failed to update goal milestone in database.');
     }
   };
 
   const handleDeleteGoal = async (id: number) => {
     try {
-      const res = await fetch(`/api/goals/${id}`, {
+      await apiFetch(`/api/goals/${id}`, {
         method: 'DELETE',
         headers: getAuthHeaders(),
       });
-      if (res.ok) {
-        setGoalsList(goalsList.filter((g) => g.id !== id));
-      }
-    } catch (e) {
+      setGoalsList(goalsList.filter((g) => g.id !== id));
+    } catch (e: any) {
       console.error('Failed to delete goal:', e);
+      setError(e.message || 'Failed to delete goal from database.');
     }
   };
 
@@ -160,6 +165,22 @@ export const GoalsView: React.FC = () => {
           Define objective targets across Study, Money, and Habits with executable milestone roadmaps in PostgreSQL.
         </p>
       </div>
+
+      {error && (
+        <AlertBanner
+          message="Database operation failed"
+          details={error}
+          variant="error"
+          onDismiss={() => setError(null)}
+          action={{
+            label: 'Retry Loading',
+            onClick: () => {
+              setError(null);
+              fetchGoals();
+            },
+          }}
+        />
+      )}
 
       {/* Metrics */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">

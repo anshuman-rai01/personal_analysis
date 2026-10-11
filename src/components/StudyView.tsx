@@ -14,12 +14,15 @@ import {
 } from 'lucide-react';
 import { StudySession } from '../types/index.ts';
 import { useAuth } from '../context/AuthContext.tsx';
+import { apiFetch, getLocalDateString } from '../lib/apiClient.ts';
+import { AlertBanner } from './common/AlertBanner.tsx';
 
 export const StudyView: React.FC = () => {
   const { getAuthHeaders } = useAuth();
   const [sessions, setSessions] = useState<StudySession[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSubjectFilter, setSelectedSubjectFilter] = useState('all');
 
@@ -30,19 +33,19 @@ export const StudyView: React.FC = () => {
   const [technique, setTechnique] = useState('Deep Work');
   const [focusScore, setFocusScore] = useState(8);
   const [energyScore, setEnergyScore] = useState(8);
-  const [date, setDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [date, setDate] = useState(() => getLocalDateString());
   const [notes, setNotes] = useState('');
 
   const fetchSessions = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/study', { headers: getAuthHeaders() });
-      if (res.ok) {
-        const data = await res.json();
-        setSessions(data);
-      }
-    } catch (e) {
+      const data = await apiFetch<StudySession[]>('/api/study', {
+        headers: getAuthHeaders(),
+      });
+      setSessions(data);
+    } catch (e: any) {
       console.error('Failed to load study sessions:', e);
+      setError(e.message || 'Failed to load study sessions from database.');
     } finally {
       setLoading(false);
     }
@@ -56,11 +59,15 @@ export const StudyView: React.FC = () => {
     e.preventDefault();
     if (!subject.trim() || !topic.trim() || !durationMinutes) return;
 
+    setError(null);
     setSubmitting(true);
     try {
-      const res = await fetch('/api/study', {
+      const newRecord = await apiFetch<StudySession>('/api/study', {
         method: 'POST',
-        headers: getAuthHeaders(),
+        headers: {
+          ...getAuthHeaders(),
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({
           subject: subject.trim(),
           topic: topic.trim(),
@@ -73,14 +80,12 @@ export const StudyView: React.FC = () => {
         }),
       });
 
-      if (res.ok) {
-        const newRecord = await res.json();
-        setSessions([newRecord, ...sessions]);
-        setTopic('');
-        setNotes('');
-      }
-    } catch (err) {
+      setSessions([newRecord, ...sessions]);
+      setTopic('');
+      setNotes('');
+    } catch (err: any) {
       console.error('Error adding study session:', err);
+      setError(err.message || 'Failed to save study session to database.');
     } finally {
       setSubmitting(false);
     }
@@ -88,15 +93,14 @@ export const StudyView: React.FC = () => {
 
   const handleDelete = async (id: number) => {
     try {
-      const res = await fetch(`/api/study/${id}`, {
+      await apiFetch(`/api/study/${id}`, {
         method: 'DELETE',
         headers: getAuthHeaders(),
       });
-      if (res.ok) {
-        setSessions(sessions.filter((s) => s.id !== id));
-      }
-    } catch (err) {
+      setSessions(sessions.filter((s) => s.id !== id));
+    } catch (err: any) {
       console.error('Failed to delete study record:', err);
+      setError(err.message || 'Failed to delete study record from database.');
     }
   };
 
@@ -133,6 +137,22 @@ export const StudyView: React.FC = () => {
           Log intentional learning sessions with cognitive metrics, technique classification, and PostgreSQL persistence.
         </p>
       </div>
+
+      {error && (
+        <AlertBanner
+          message="Database operation failed"
+          details={error}
+          variant="error"
+          onDismiss={() => setError(null)}
+          action={{
+            label: 'Retry Loading',
+            onClick: () => {
+              setError(null);
+              fetchSessions();
+            },
+          }}
+        />
+      )}
 
       {/* Top Study Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">

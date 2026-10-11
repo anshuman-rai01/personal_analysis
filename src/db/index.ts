@@ -12,6 +12,7 @@ export const createPool = () => {
   if (!global._postgresPool) {
     global._postgresPool = new Pool({
       host: process.env.SQL_HOST,
+      port: process.env.SQL_PORT ? parseInt(process.env.SQL_PORT, 10) : 5432,
       user: process.env.SQL_USER,
       password: process.env.SQL_PASSWORD,
       database: process.env.SQL_DB_NAME,
@@ -28,7 +29,7 @@ export const createPool = () => {
 };
 
 // Create or retrieve the pool instance.
-const pool = createPool();
+export const pool = createPool();
 
 // Initialize Drizzle with the pool and schema.
 export const db = drizzle(pool, { schema });

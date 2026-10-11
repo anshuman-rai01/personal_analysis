@@ -15,12 +15,15 @@ import {
 } from 'lucide-react';
 import { FinanceTransaction } from '../types/index.ts';
 import { useAuth } from '../context/AuthContext.tsx';
+import { apiFetch, getLocalDateString } from '../lib/apiClient.ts';
+import { AlertBanner } from './common/AlertBanner.tsx';
 
 export const FinanceView: React.FC = () => {
   const { getAuthHeaders } = useAuth();
   const [transactions, setTransactions] = useState<FinanceTransaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
 
@@ -30,19 +33,19 @@ export const FinanceView: React.FC = () => {
   const [category, setCategory] = useState('Food');
   const [amount, setAmount] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('Bank Transfer');
-  const [date, setDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [date, setDate] = useState(() => getLocalDateString());
   const [notes, setNotes] = useState('');
 
   const fetchTransactions = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/finance', { headers: getAuthHeaders() });
-      if (res.ok) {
-        const data = await res.json();
-        setTransactions(data);
-      }
-    } catch (e) {
+      const data = await apiFetch<FinanceTransaction[]>('/api/finance', {
+        headers: getAuthHeaders(),
+      });
+      setTransactions(data);
+    } catch (e: any) {
       console.error('Failed to load transactions:', e);
+      setError(e.message || 'Failed to load finance records from database.');
     } finally {
       setLoading(false);
     }
@@ -56,11 +59,15 @@ export const FinanceView: React.FC = () => {
     e.preventDefault();
     if (!title.trim() || !amount) return;
 
+    setError(null);
     setSubmitting(true);
     try {
-      const res = await fetch('/api/finance', {
+      const newRecord = await apiFetch<FinanceTransaction>('/api/finance', {
         method: 'POST',
-        headers: getAuthHeaders(),
+        headers: {
+          ...getAuthHeaders(),
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({
           title: title.trim(),
           type,
@@ -72,15 +79,13 @@ export const FinanceView: React.FC = () => {
         }),
       });
 
-      if (res.ok) {
-        const newRecord = await res.json();
-        setTransactions([newRecord, ...transactions]);
-        setTitle('');
-        setAmount('');
-        setNotes('');
-      }
-    } catch (err) {
+      setTransactions([newRecord, ...transactions]);
+      setTitle('');
+      setAmount('');
+      setNotes('');
+    } catch (err: any) {
       console.error('Failed to create finance transaction:', err);
+      setError(err.message || 'Failed to create finance transaction in database.');
     } finally {
       setSubmitting(false);
     }
@@ -88,15 +93,14 @@ export const FinanceView: React.FC = () => {
 
   const handleDelete = async (id: number) => {
     try {
-      const res = await fetch(`/api/finance/${id}`, {
+      await apiFetch(`/api/finance/${id}`, {
         method: 'DELETE',
         headers: getAuthHeaders(),
       });
-      if (res.ok) {
-        setTransactions(transactions.filter((t) => t.id !== id));
-      }
-    } catch (err) {
+      setTransactions(transactions.filter((t) => t.id !== id));
+    } catch (err: any) {
       console.error('Failed to delete transaction:', err);
+      setError(err.message || 'Failed to delete transaction from database.');
     }
   };
 
@@ -131,6 +135,22 @@ export const FinanceView: React.FC = () => {
           Track money inflows, outflows, compounding investments, and savings rates stored in PostgreSQL.
         </p>
       </div>
+
+      {error && (
+        <AlertBanner
+          message="Database operation failed"
+          details={error}
+          variant="error"
+          onDismiss={() => setError(null)}
+          action={{
+            label: 'Retry Loading',
+            onClick: () => {
+              setError(null);
+              fetchTransactions();
+            },
+          }}
+        />
+      )}
 
       {/* Money KPIs in White, Purple & Pink */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">

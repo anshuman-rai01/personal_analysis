@@ -14,6 +14,8 @@ import {
 import { Habit, HabitLog } from '../types/index.ts';
 import { useAuth } from '../context/AuthContext.tsx';
 import confetti from 'canvas-confetti';
+import { apiFetch, getLocalDateString } from '../lib/apiClient.ts';
+import { AlertBanner } from './common/AlertBanner.tsx';
 
 export const HabitsView: React.FC = () => {
   const { getAuthHeaders } = useAuth();
@@ -21,6 +23,7 @@ export const HabitsView: React.FC = () => {
   const [logs, setLogs] = useState<HabitLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // New Habit form state
   const [name, setName] = useState('');
@@ -32,20 +35,20 @@ export const HabitsView: React.FC = () => {
   const past7Days = Array.from({ length: 7 }, (_, i) => {
     const d = new Date();
     d.setDate(d.getDate() - (6 - i));
-    return d.toISOString().split('T')[0];
+    return getLocalDateString(d);
   });
 
   const fetchHabitsAndLogs = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/habits', { headers: getAuthHeaders() });
-      if (res.ok) {
-        const data = await res.json();
-        setHabitsList(data.habits || []);
-        setLogs(data.logs || []);
-      }
-    } catch (e) {
+      const data = await apiFetch<{ habits: Habit[]; logs: HabitLog[] }>('/api/habits', {
+        headers: getAuthHeaders(),
+      });
+      setHabitsList(data.habits || []);
+      setLogs(data.logs || []);
+    } catch (e: any) {
       console.error('Failed to load habits:', e);
+      setError(e.message || 'Failed to load habits from database.');
     } finally {
       setLoading(false);
     }
@@ -59,11 +62,15 @@ export const HabitsView: React.FC = () => {
     e.preventDefault();
     if (!name.trim()) return;
 
+    setError(null);
     setSubmitting(true);
     try {
-      const res = await fetch('/api/habits', {
+      const newHabit = await apiFetch<Habit>('/api/habits', {
         method: 'POST',
-        headers: getAuthHeaders(),
+        headers: {
+          ...getAuthHeaders(),
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({
           name: name.trim(),
           category,
@@ -74,13 +81,11 @@ export const HabitsView: React.FC = () => {
         }),
       });
 
-      if (res.ok) {
-        const newHabit = await res.json();
-        setHabitsList([...habitsList, newHabit]);
-        setName('');
-      }
-    } catch (err) {
+      setHabitsList([...habitsList, newHabit]);
+      setName('');
+    } catch (err: any) {
       console.error('Failed to create habit:', err);
+      setError(err.message || 'Failed to create habit in database.');
     } finally {
       setSubmitting(false);
     }
@@ -88,40 +93,40 @@ export const HabitsView: React.FC = () => {
 
   const handleToggleLog = async (habitId: number, dateStr: string) => {
     try {
-      const res = await fetch(`/api/habits/${habitId}/toggle`, {
+      const result = await apiFetch<{ completed: number }>(`/api/habits/${habitId}/toggle`, {
         method: 'POST',
-        headers: getAuthHeaders(),
+        headers: {
+          ...getAuthHeaders(),
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({ date: dateStr }),
       });
 
-      if (res.ok) {
-        const result = await res.json();
-        if (result.completed === 1) {
-          confetti({
-            particleCount: 25,
-            spread: 45,
-            origin: { y: 0.8 },
-          });
-        }
-        fetchHabitsAndLogs();
+      if (result.completed === 1) {
+        confetti({
+          particleCount: 25,
+          spread: 45,
+          origin: { y: 0.8 },
+        });
       }
-    } catch (e) {
+      fetchHabitsAndLogs();
+    } catch (e: any) {
       console.error('Failed to toggle habit:', e);
+      setError(e.message || 'Failed to update habit check-in in database.');
     }
   };
 
   const handleDeleteHabit = async (id: number) => {
     try {
-      const res = await fetch(`/api/habits/${id}`, {
+      await apiFetch(`/api/habits/${id}`, {
         method: 'DELETE',
         headers: getAuthHeaders(),
       });
-      if (res.ok) {
-        setHabitsList(habitsList.filter((h) => h.id !== id));
-        setLogs(logs.filter((l) => l.habitId !== id));
-      }
-    } catch (err) {
+      setHabitsList(habitsList.filter((h) => h.id !== id));
+      setLogs(logs.filter((l) => l.habitId !== id));
+    } catch (err: any) {
       console.error('Failed to delete habit:', err);
+      setError(err.message || 'Failed to delete habit from database.');
     }
   };
 
@@ -144,6 +149,22 @@ export const HabitsView: React.FC = () => {
           Build unbreakable streaks, track 7-day completion matrices, and record daily logs in PostgreSQL.
         </p>
       </div>
+
+      {error && (
+        <AlertBanner
+          message="Database operation failed"
+          details={error}
+          variant="error"
+          onDismiss={() => setError(null)}
+          action={{
+            label: 'Retry Loading',
+            onClick: () => {
+              setError(null);
+              fetchHabitsAndLogs();
+            },
+          }}
+        />
+      )}
 
       {/* Top Metrics */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">

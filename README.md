@@ -127,6 +127,7 @@ Beyond passive logging, OmniLife features a **1,200-record multivariate Machine 
 
 ### 1. Prerequisites
 * **Node.js**: Version 20 or higher installed on your computer ([Download Node.js](https://nodejs.org/)).
+* **PostgreSQL**: Version 15 or 16+ running locally (or via Docker).
 * **Python**: Version 3.10+ (optional, for custom ML script execution).
 
 ---
@@ -136,19 +137,30 @@ Beyond passive logging, OmniLife features a **1,200-record multivariate Machine 
 #### Step 1: Open Terminal in VS Code
 Open VS Code, press ``Ctrl + ` `` (or go to **Terminal** > **New Terminal**).
 
-#### Step 2: Install All Dependencies (Crucial First Step)
-Before running the project, you must install the packages (`node_modules`):
+#### Step 2: Install All Dependencies
 ```bash
 npm install
 ```
-> 💡 **Why this is required:** When downloading the project zip, `node_modules` is not included. Running `npm install` installs `tsx`, `express`, `react`, `drizzle-kit`, and all build tools.
+> 💡 **Peer Dependencies Note (`.npmrc`):**
+> The repository includes an `.npmrc` with `legacy-peer-deps=true`. This is required because `@tailwindcss/vite` declares a peer dependency on Vite 8 / esbuild `^0.27 || ^0.28`, while Vite installs `esbuild@0.25.x`. A future dependency bump will resolve this upstream conflict.
 
-#### Step 3: Run the Development Server
+#### Step 3: Configure Environment Variables
+Copy the template configuration file:
+```bash
+cp .env.example .env
+```
+Open `.env` and fill in your real PostgreSQL password and Gemini API key:
+- `SQL_PASSWORD`: Your local PostgreSQL user password (replace `YOUR_SQL_PASSWORD_HERE`).
+- `SQL_ADMIN_PASSWORD`: Your PostgreSQL superuser/admin password (if separate, or leave equal to `SQL_PASSWORD`).
+- `GEMINI_API_KEY`: Your Google AI Studio API key.
+
+#### Step 4: Run the Development Server
 ```bash
 npm run dev
 ```
+> 🛡️ **Self-Healing Bootstrap:** `npm run dev` automatically triggers `predev` (`npm run db:setup`), which connects to PostgreSQL, creates the database if missing, and verifies all 8 schema tables before starting the web server.
 
-#### Step 4: Open in Your Browser
+#### Step 5: Open in Your Browser
 Once the server starts, open your browser and go to:
 ```
 http://localhost:3000
@@ -156,25 +168,70 @@ http://localhost:3000
 
 ---
 
-### ⚠️ Common Troubleshooting on Windows
+## 🗄️ Local Database Setup
 
-#### Issue A: `'tsx' is not recognized as an internal or external command`
-* **Cause**: You ran `npm run dev` before running `npm install`.
-* **Fix**: Simply run `npm install` in your terminal, wait for it to complete, and then run `npm run dev`.
+OmniLife Studio uses PostgreSQL with Drizzle ORM. You can run PostgreSQL either natively or with Docker.
 
-#### Issue B: `drizzle.config.json file does not exist`
-* **Fix**: A root `drizzle.config.ts` has been provided. If pushing database schema, simply run:
-  ```bash
-  npx drizzle-kit push
-  ```
+### Option A: Native PostgreSQL Service
 
-#### Issue C: PowerShell Execution Policy Restriction
-* If PowerShell gives a script error like `running scripts is disabled on this system`:
-  Run this in PowerShell:
-  ```powershell
-  Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
-  ```
-  Or run using Command Prompt (`cmd`) inside VS Code.
+#### Windows
+1. Download and run the PostgreSQL installer from [postgresql.org](https://www.postgresql.org/download/windows/) (or install via `winget install PostgreSQL.PostgreSQL`).
+2. Ensure the Windows service is running in PowerShell:
+   ```powershell
+   Get-Service -Name postgresql*
+   # If stopped, start it:
+   Start-Service -Name postgresql*
+   ```
+3. Set your postgres user password during installation and mirror it in `.env` as `SQL_PASSWORD="your_password"`.
+
+#### macOS / Linux
+```bash
+# macOS (Homebrew)
+brew install postgresql@16
+brew services start postgresql@16
+
+# Ubuntu / Debian
+sudo apt update && sudo apt install -y postgresql postgresql-contrib
+sudo systemctl start postgresql
+```
+
+### Option B: Docker Compose (Convenience)
+If you prefer Docker, a `docker-compose.yml` is provided:
+```bash
+# Start PostgreSQL 16 in the background
+docker compose up -d
+
+# Verify container is running
+docker compose ps
+```
+
+---
+
+## 🛠️ Database Management Scripts
+
+| Command | Script | Purpose |
+| :--- | :--- | :--- |
+| `npm run db:setup` | `tsx scripts/setup-db.ts` | **Idempotent, non-destructive bootstrap.** Creates database if missing and pushes schema tables if absent. Never drops or alters populated tables. |
+| `npm run db:check` | `tsx scripts/check-db.ts` | **Read-only audit.** Inspects connection, verifies the presence of all 8 tables, and displays live row counts. |
+| `npm run db:push` | `drizzle-kit push` | **Manual schema push.** Applies Drizzle schema changes directly to the target database. |
+| `npm test` | Node test runner | Runs all unit and pure health-shaping tests across `src/**/*.test.ts` and `scripts/**/*.test.ts`. |
+
+> 💡 **Escape Hatch:** If you want to bypass database setup verification during `npm run dev` (e.g. in CI or custom environments), run:
+> ```bash
+> DB_SETUP_SKIP=true npm run dev
+> ```
+
+---
+
+## ⚠️ Troubleshooting Guide
+
+| Error / Symptom | Root Cause | Solution |
+| :--- | :--- | :--- |
+| `password authentication failed for user "postgres"` (HTTP 500) | `SQL_PASSWORD` or `SQL_ADMIN_PASSWORD` in `.env` is incorrect or contains placeholder text (`YOUR_...`). | Update `.env` with your actual PostgreSQL password. Run `npm run db:setup` to confirm credentials. |
+| `relation "finance_transactions" does not exist` (HTTP 500) | Database exists but schema tables have not been created yet. | Run `npm run db:setup` to push all 8 schema tables without dropping data. |
+| `connect ECONNREFUSED 127.0.0.1:5432` | PostgreSQL service is stopped or port `5432` is not reachable. | Start your PostgreSQL service (`Start-Service postgresql*` on Windows, `brew services start postgresql@16` on Mac, or `docker compose up -d`). |
+| `'tsx' is not recognized as an internal or external command` | `npm install` has not been run. | Run `npm install` in your terminal, then rerun `npm run dev`. |
+| PowerShell: `running scripts is disabled on this system` | Windows execution policy restriction. | Run `Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned` in PowerShell. |
 
 ---
 

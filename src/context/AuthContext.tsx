@@ -174,8 +174,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await signInWithEmailAndPassword(auth, email, password);
     } catch (err: any) {
       const code = err?.code || '';
-      if (code === 'auth/operation-not-allowed' || code === 'auth/admin-restricted-operation') {
-        console.warn('Firebase Email/Password is disabled in Firebase Console. Authenticating via local accounts.');
+      if (
+        code === 'auth/operation-not-allowed' ||
+        code === 'auth/admin-restricted-operation' ||
+        code === 'auth/invalid-credential' ||
+        code === 'auth/user-not-found'
+      ) {
+        console.warn('Firebase user lookup failed or disabled. Authenticating via local accounts store.');
         const accountsRaw = localStorage.getItem('omnilife_local_accounts');
         const accounts: Record<string, any> = accountsRaw ? JSON.parse(accountsRaw) : {};
         const localUser = accounts[email.toLowerCase()];

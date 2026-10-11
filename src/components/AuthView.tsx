@@ -138,8 +138,23 @@ export const AuthView: React.FC<AuthViewProps> = ({ onNavigateToDashboard }) => 
     clearAuthError();
     setLoading(true);
     try {
-      await loginWithDemoAccount('Alex Sharma', 'alex.sharma@omnilife.ai');
+      await loginWithDemoAccount('Alex Sharma', '');
       setSuccessMessage('Signed in with Demo Account! Redirecting...');
+      setTimeout(() => onNavigateToDashboard(), 500);
+    } catch (err: any) {
+      setLocalError(getFriendlyErrorMessage(err));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAnshumanSignIn = async () => {
+    setLocalError(null);
+    clearAuthError();
+    setLoading(true);
+    try {
+      await loginWithDemoAccount('Anshuman Rai', 'anshumanr699@gmail.com');
+      setSuccessMessage('Signed in as Anshuman Rai! Redirecting...');
       setTimeout(() => onNavigateToDashboard(), 500);
     } catch (err: any) {
       setLocalError(getFriendlyErrorMessage(err));
@@ -280,11 +295,10 @@ export const AuthView: React.FC<AuthViewProps> = ({ onNavigateToDashboard }) => 
                 clearAuthError();
                 setSuccessMessage(null);
               }}
-              className={`py-2 rounded-xl transition-all ${
-                mode === 'login'
+              className={`py-2 rounded-xl transition-all ${mode === 'login'
                   ? 'bg-white text-purple-950 shadow-xs'
                   : 'text-purple-700 hover:text-purple-950'
-              }`}
+                }`}
             >
               Sign In
             </button>
@@ -296,26 +310,36 @@ export const AuthView: React.FC<AuthViewProps> = ({ onNavigateToDashboard }) => 
                 clearAuthError();
                 setSuccessMessage(null);
               }}
-              className={`py-2 rounded-xl transition-all ${
-                mode === 'register'
+              className={`py-2 rounded-xl transition-all ${mode === 'register'
                   ? 'bg-white text-purple-950 shadow-xs'
                   : 'text-purple-700 hover:text-purple-950'
-              }`}
+                }`}
             >
               Register (Sign Up)
             </button>
           </div>
 
-          {/* Quick 1-Click Demo Login (Guaranteed to work in iframe with zero popup issues) */}
-          <button
-            type="button"
-            onClick={handleDemoSignIn}
-            disabled={loading}
-            className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-purple-50 to-pink-50 hover:from-purple-100 hover:to-pink-100 text-purple-950 text-xs font-bold border border-purple-200 flex items-center justify-center gap-2 shadow-2xs transition-all hover:scale-[1.01]"
-          >
-            <Zap className="w-4 h-4 text-pink-600" />
-            <span>1-Click Instant Sign-In (Demo User)</span>
-          </button>
+          {/* Quick 1-Click Instant Sign-In Options */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={handleAnshumanSignIn}
+              disabled={loading}
+              className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-purple-100 to-pink-100 hover:from-purple-200 hover:to-pink-200 text-purple-950 text-xs font-bold border border-purple-300 flex items-center justify-center gap-1.5 shadow-2xs transition-all hover:scale-[1.01]"
+            >
+              <UserCheck className="w-3.5 h-3.5 text-purple-700" />
+              <span>Sign In: Anshuman Rai</span>
+            </button>
+            <button
+              type="button"
+              onClick={handleDemoSignIn}
+              disabled={loading}
+              className="w-full py-2.5 px-3 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-900 text-xs font-bold border border-purple-200 flex items-center justify-center gap-1.5 shadow-2xs transition-all hover:scale-[1.01]"
+            >
+              <Zap className="w-3.5 h-3.5 text-pink-600" />
+              <span>Demo: Alex Sharma</span>
+            </button>
+          </div>
 
           {/* Google One-Click Button */}
           <button

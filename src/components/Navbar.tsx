@@ -7,12 +7,12 @@ import {
   Target,
   TrendingUp,
   SlidersHorizontal,
+  Bot,
   Plus,
   LogIn,
   LogOut,
   Database,
-  Sparkles,
-  User as UserIcon
+  Sparkles
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.tsx';
 
@@ -24,20 +24,51 @@ export type ActiveTab =
   | 'goals'
   | 'forecasting'
   | 'simulation'
+  | 'assistant'
   | 'auth';
+
+export const DEFAULT_PROTECTED_TABS: ActiveTab[] = [
+  'study',
+  'finance',
+  'habits',
+  'goals',
+  'forecasting',
+  'simulation',
+  'assistant',
+];
 
 interface NavbarProps {
   activeTab: ActiveTab;
   setActiveTab: (tab: ActiveTab) => void;
   onOpenQuickLog: () => void;
+  onOpenAssistant?: () => void;
+  protectedTabs?: ActiveTab[];
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
   activeTab,
   setActiveTab,
   onOpenQuickLog,
+  onOpenAssistant,
+  protectedTabs = DEFAULT_PROTECTED_TABS,
 }) => {
   const { user, isGuest, logout } = useAuth();
+  const isAuthenticated = Boolean(user && !isGuest);
+
+  const handleTabClick = (tabId: ActiveTab) => {
+    // Intercept clicks: check authentication state for protected tabs
+    if (protectedTabs.includes(tabId) && !isAuthenticated) {
+      // Trigger sign-in: prevent tab change and immediately redirect to login page
+      setActiveTab('auth');
+      return;
+    }
+
+    // Allow access: proceed with navigation normally
+    setActiveTab(tabId);
+    if (tabId === 'assistant' && onOpenAssistant) {
+      onOpenAssistant();
+    }
+  };
 
   const navItems: { id: ActiveTab; label: string; icon: React.ReactNode; badge?: string }[] = [
     { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard className="w-4 h-4" /> },
@@ -47,6 +78,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     { id: 'goals', label: 'Goals', icon: <Target className="w-4 h-4" /> },
     { id: 'forecasting', label: 'Forecasting (ML)', icon: <TrendingUp className="w-4 h-4" />, badge: '1,200' },
     { id: 'simulation', label: 'Simulation', icon: <SlidersHorizontal className="w-4 h-4" />, badge: 'What-If' },
+    { id: 'assistant', label: 'AI Assistant', icon: <Bot className="w-4 h-4" />, badge: 'Gemini' },
   ];
 
   return (
@@ -54,7 +86,7 @@ export const Navbar: React.FC<NavbarProps> = ({
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo & PostgreSQL Badge */}
-          <div className="flex items-center gap-3 cursor-pointer" onClick={() => setActiveTab('dashboard')}>
+          <div className="flex items-center gap-3 cursor-pointer" onClick={() => handleTabClick('dashboard')}>
             <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-purple-600 via-fuchsia-600 to-pink-500 flex items-center justify-center shadow-md shadow-pink-500/25">
               <Sparkles className="w-5 h-5 text-white" />
             </div>
@@ -76,13 +108,22 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           {/* Quick Action & Auth controls */}
           <div className="flex items-center gap-2 sm:gap-3">
-            <button
-              onClick={onOpenQuickLog}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 text-xs font-semibold rounded-lg bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-700 hover:to-pink-600 text-white shadow-md shadow-pink-500/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Quick Log</span>
-            </button>
+            {/* Conditionally render Quick Log button: hidden on auth tab, visible on dashboard & other tabs */}
+            {activeTab !== 'auth' && (
+              <button
+                onClick={() => {
+                  if (!isAuthenticated) {
+                    setActiveTab('auth');
+                    return;
+                  }
+                  onOpenQuickLog();
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 text-xs font-semibold rounded-lg bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-700 hover:to-pink-600 text-white shadow-md shadow-pink-500/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Quick Log</span>
+              </button>
+            )}
 
             {user && !isGuest ? (
               <div className="flex items-center gap-2 bg-purple-50/80 border border-purple-200/80 rounded-lg p-1 pr-2">
@@ -137,7 +178,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             return (
               <button
                 key={item.id}
-                onClick={() => setActiveTab(item.id)}
+                onClick={() => handleTabClick(item.id)}
                 className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all duration-150 relative ${
                   isActive
                     ? 'bg-gradient-to-r from-purple-700 to-fuchsia-600 text-white shadow-sm shadow-purple-500/20'
@@ -160,19 +201,6 @@ export const Navbar: React.FC<NavbarProps> = ({
               </button>
             );
           })}
-
-          {/* Account Tab link */}
-          <button
-            onClick={() => setActiveTab('auth')}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all duration-150 ml-auto ${
-              activeTab === 'auth'
-                ? 'bg-gradient-to-r from-purple-700 to-fuchsia-600 text-white shadow-sm'
-                : 'text-purple-900/80 hover:text-purple-950 hover:bg-purple-50/80'
-            }`}
-          >
-            <UserIcon className="w-3.5 h-3.5" />
-            <span>{user && !isGuest ? 'Account' : 'Login / Register'}</span>
-          </button>
         </nav>
       </div>
     </header>

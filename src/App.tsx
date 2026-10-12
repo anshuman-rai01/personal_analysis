@@ -6,14 +6,16 @@
 import React, { useState } from 'react';
 import { AuthProvider } from './context/AuthContext.tsx';
 import { Navbar, ActiveTab } from './components/Navbar.tsx';
-import { DashboardView } from './components/DashboardView.tsx';
-import { StudyView } from './components/StudyView.tsx';
-import { FinanceView } from './components/FinanceView.tsx';
-import { HabitsView } from './components/HabitsView.tsx';
-import { GoalsView } from './components/GoalsView.tsx';
-import { ForecastingView } from './components/ForecastingView.tsx';
-import { SimulationView } from './components/SimulationView.tsx';
-import { AuthView } from './components/AuthView.tsx';
+import {
+  DashboardView,
+  StudyView,
+  FinanceView,
+  HabitsView,
+  GoalsView,
+  ForecastingView,
+  SimulationView,
+  AuthView,
+} from './components/views/index.ts';
 import { QuickLogModal } from './components/QuickLogModal.tsx';
 import { AssistantWidget } from './components/assistant/AssistantWidget.tsx';
 import { onServer500Error } from './lib/apiClient.ts';

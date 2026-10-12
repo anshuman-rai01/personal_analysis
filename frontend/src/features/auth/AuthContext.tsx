@@ -290,7 +290,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   /**
    * 1-Click Demo Account for instant sign-in in iframe environments
    */
-  const loginWithDemoAccount = async (name = 'Alex Sharma', email = 'alex.sharma@omnilife.ai') => {
+  const loginWithDemoAccount = async (name = 'Anshuman Rai', email = 'alex.sharma@omnilife.ai') => {
     const demoUid = 'demo_' + btoa(email).replace(/=/g, '').toLowerCase().slice(0, 16);
     const demoObj = {
       uid: demoUid,

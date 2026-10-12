@@ -138,7 +138,7 @@ export const AuthView: React.FC<AuthViewProps> = ({ onNavigateToDashboard }) => 
     clearAuthError();
     setLoading(true);
     try {
-      await loginWithDemoAccount('Alex Sharma', '');
+      await loginWithDemoAccount('Anshuman Rai', '');
       setSuccessMessage('Signed in with Demo Account! Redirecting...');
       setTimeout(() => onNavigateToDashboard(), 500);
     } catch (err: any) {
@@ -337,7 +337,7 @@ export const AuthView: React.FC<AuthViewProps> = ({ onNavigateToDashboard }) => 
               className="w-full py-2.5 px-3 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-900 text-xs font-bold border border-purple-200 flex items-center justify-center gap-1.5 shadow-2xs transition-all hover:scale-[1.01]"
             >
               <Zap className="w-3.5 h-3.5 text-pink-600" />
-              <span>Demo: Alex Sharma</span>
+              <span>Demo: Anshuman Rai</span>
             </button>
           </div>
 
@@ -406,7 +406,7 @@ export const AuthView: React.FC<AuthViewProps> = ({ onNavigateToDashboard }) => 
                     type="text"
                     value={displayName}
                     onChange={(e) => setDisplayName(e.target.value)}
-                    placeholder="e.g. Alex Sharma"
+                    placeholder="e.g. Anshuman Rai"
                     className="w-full pl-9 pr-3 py-2 text-xs bg-white border border-purple-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 text-slate-900 placeholder:text-slate-400"
                   />
                 </div>

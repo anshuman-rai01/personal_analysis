@@ -418,9 +418,9 @@ async function main() {
   await seedUserData(primaryUid, primaryEmail, 'Anshuman Rai');
   await seedUserData(demoAnshumanUid, primaryEmail, 'Anshuman Rai');
 
-  // Also seed default demo user (Alex Sharma)
+  // Also seed default demo user (Anshuman Rai)
   const alexUid = 'demo_ywxlec5zagfybwfa';
-  await seedUserData(alexUid, 'alex.sharma@omnilife.ai', 'Alex Sharma');
+  await seedUserData(alexUid, 'alex.sharma@omnilife.ai', 'Anshuman Rai');
 
   console.log('====================================================');
   console.log('Database Seeding Finished Successfully! 🎉');

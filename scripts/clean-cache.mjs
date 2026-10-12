@@ -1,6 +1,6 @@
 import fs from 'fs';
 
-const folders = ['node_modules/.vite', 'dist', '.next'];
+const folders = ['node_modules/.vite', 'frontend/node_modules/.vite', 'dist', 'frontend/dist', '.next'];
 
 for (const folder of folders) {
   if (fs.existsSync(folder)) {

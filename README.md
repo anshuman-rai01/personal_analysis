@@ -89,65 +89,79 @@ Beyond passive logging, OmniLife features a **1,200-record multivariate Machine 
 
 ---
 
-## 📁 Repository Structure
+## 📁 Monorepo Architecture & Structure
+
+OmniLife Studio is organized as a maintainable full-stack monorepo using npm workspaces:
 
 ```
-├── server.ts                       # Express backend API & Vite server orchestrator
-├── python_service/
-│   └── ml_engine.py                # Python 3 ML multivariate regression & simulation
-├── src/
-│   ├── App.tsx                     # Main application shell & tab routing
-│   ├── main.tsx                    # React DOM client mount
-│   ├── components/
-│   │   ├── Navbar.tsx              # Navigation bar & authentication access control
-│   │   ├── QuickLogModal.tsx       # Rapid multi-module transaction/session modal
-│   │   ├── common/                 # Reusable UI primitives (AlertBanner, etc.)
-│   │   ├── assistant/              # AI Assistant chat widget & interactive blocks
-│   │   └── views/                  # Modular feature views (with barrel export)
-│   │       ├── AuthView.tsx        # Login, registration & demo account access
-│   │       ├── DashboardView.tsx   # Central KPI analytics & synergy index
-│   │       ├── FinanceView.tsx     # Financial transactions ledger (₹ INR)
-│   │       ├── ForecastingView.tsx # 1,200-record ML regression & confidence bands
-│   │       ├── GoalsView.tsx       # SMART goal roadmaps & milestone tracker
-│   │       ├── HabitsView.tsx      # 14-day interactive habit consistency matrix
-│   │       ├── SimulationView.tsx  # What-If decision sliders & risk evaluation
-│   │       └── StudyView.tsx       # Cognitive learning sessions & depth tracker
-│   ├── context/
-│   │   └── AuthContext.tsx         # Firebase Auth, Google Sign-In & local fallback
-│   ├── db/
-│   │   ├── index.ts                # PostgreSQL connection pool (pg.Pool)
-│   │   ├── schema.ts               # Drizzle relational schema definitions
-│   │   ├── users.ts                # User profile synchronization helpers
-│   │   ├── seedDefaults.ts         # First-time demo data provisioning
-│   │   ├── health.ts               # Database health checks & connection masking
-│   │   └── envCheck.ts             # Environment credentials validator
-│   ├── routes/                     # Modular backend Express API routers
-│   │   ├── index.ts                # Central API router aggregator (/api/*)
-│   │   ├── health.ts               # Health status endpoint (/api/health)
-│   │   ├── user.ts                 # Profile sync route (/api/user/sync)
-│   │   ├── study.ts                # Study sessions CRUD (/api/study)
-│   │   ├── finance.ts              # Finance transactions CRUD (/api/finance)
-│   │   ├── habits.ts               # Habits & check-in logs (/api/habits)
-│   │   ├── goals.ts                # Goal roadmaps & progress (/api/goals)
-│   │   ├── ml.ts                   # Python ML training bridge (/api/ml)
-│   │   ├── simulation.ts           # Decision scenario simulator (/api/simulation)
-│   │   ├── dashboard.ts            # Aggregated analytics (/api/dashboard/overview)
-│   │   ├── docs.ts                 # PDF exports (IEEE Paper, Guide, Script)
-│   │   └── assistant.ts            # Gemini tool-calling assistant (/api/assistant)
-│   ├── assistant/                  # Server-side Gemini AI agent orchestration & tools
-│   ├── lib/
-│   │   ├── apiClient.ts            # Typed client-side fetch client
-│   │   ├── firebase.ts             # Client Firebase SDK initialization
-│   │   ├── firebase-admin.ts       # Server Firebase Admin SDK initialization
-│   │   └── pdfGenerator.ts         # PDFKit document generator (Guide, Paper, Script)
-│   └── types/
-│       └── index.ts                # TypeScript domain models
-├── scripts/
-│   ├── check-db.ts                 # Database connectivity diagnostic
-│   ├── setup-db.ts                 # Schema initialization & table creation
-│   ├── seed.ts                     # 30-day realistic historical data seeder
-│   └── clean-cache.mjs             # Cross-platform build & dev cache cleaner
-└── package.json
+├── frontend/                        # Client-side React 19 application
+│   ├── index.html                   # HTML entry point with Vite module script
+│   ├── vite.config.ts               # Vite configuration (React, Tailwind, proxy)
+│   ├── tsconfig.json                # Frontend TypeScript configuration
+│   ├── package.json                 # Frontend dependencies (React, Recharts, Lucide, Firebase)
+│   ├── public/                      # Static assets & datasets
+│   │   └── datasets/                # Sample 1,200-record CSV datasets (study, finance, habits)
+│   └── src/
+│       ├── App.tsx                  # Main application shell & tab routing
+│       ├── main.tsx                 # Client DOM mount
+│       ├── index.css                # Global styles & Tailwind utilities
+│       ├── features/                # Domain-driven feature modules
+│       │   ├── auth/                # Firebase Auth view & AuthContext
+│       │   ├── dashboard/           # KPI metrics & Synergy Index view
+│       │   ├── study/               # Cognitive session tracker view
+│       │   ├── finance/             # Income & expense ledger view (₹ INR)
+│       │   ├── habits/              # Habit consistency matrix view
+│       │   ├── goals/               # SMART goal roadmap view
+│       │   ├── forecasting/         # 1,200-record ML regression view
+│       │   ├── simulation/          # What-If scenario simulation view
+│       │   └── assistant/           # Floating Gemini chat widget & rich blocks
+│       ├── components/              # Shared UI components (Navbar, QuickLogModal, AlertBanner)
+│       ├── services/                # API client (apiFetch) & Firebase client SDK
+│       └── types/                   # TypeScript domain models & assistant types
+│
+├── backend/                         # Express REST API, Database & Server integrations
+│   ├── package.json                 # Backend dependencies (Express, Drizzle, pg, Firebase Admin)
+│   ├── tsconfig.json                # Backend TypeScript configuration
+│   ├── drizzle.config.ts            # Drizzle ORM configuration for PostgreSQL
+│   ├── python_service/              # Machine learning engine
+│   │   └── ml_engine.py             # Python 3 Ridge regression & What-If simulation engine
+│   ├── scripts/                     # Database bootstrapping and maintenance tooling
+│   │   ├── setup-db.ts              # Non-destructive schema setup & table verification
+│   │   ├── check-db.ts              # Connection diagnostic & live row count audit
+│   │   └── seed.ts                  # 30-day realistic historical data seeder
+│   └── src/
+│       ├── server.ts                # Express entry point & Vite dev/prod orchestrator
+│       ├── routes/index.ts          # Central API router aggregator (/api/*)
+│       ├── middleware/auth.ts       # Firebase ID token verification & guest mode fallback
+│       ├── config/firebase-admin.ts # Server-side Firebase Admin SDK initialization
+│       ├── db/                      # PostgreSQL persistence layer
+│       │   ├── index.ts             # Connection pool (pg.Pool) & Drizzle instance
+│       │   ├── schema.ts            # Drizzle relational schema definitions
+│       │   ├── health.ts            # Database health verification & masking logic
+│       │   ├── envCheck.ts          # Database credentials & environment validator
+│       │   ├── users.ts             # User profile synchronization helpers
+│       │   └── seedDefaults.ts      # Default profile seeding
+│       └── modules/                 # Modular API feature routers & services
+│           ├── health/              # Health check endpoint (/api/health)
+│           ├── users/               # Profile synchronization (/api/user/sync)
+│           ├── study/               # Study sessions CRUD (/api/study)
+│           ├── finance/             # Financial transactions CRUD (/api/finance)
+│           ├── habits/              # Habits & check-in logs (/api/habits)
+│           ├── goals/               # Goal roadmaps & progress (/api/goals)
+│           ├── forecasting/         # Python ML training bridge (/api/ml)
+│           ├── simulation/          # Scenario simulation engine (/api/simulation)
+│           ├── dashboard/           # Aggregated analytics (/api/dashboard/overview)
+│           ├── documents/           # PDFKit document generator (/api/download-*-pdf)
+│           └── assistant/           # Gemini AI agent, tool calling & RAG pipeline
+│
+├── docs/                            # Documentation
+│   └── IEEE_PAPER_DOCUMENTATION.md  # Academic paper documentation
+├── scripts/                         # Root maintenance tooling
+│   └── clean-cache.mjs              # Dev & build cache cleaner
+├── firebase-applet-config.json      # Firebase project credentials
+├── docker-compose.yml               # PostgreSQL 16 container definition
+├── .env.example                     # Environment template
+└── package.json                     # Root monorepo workspace configuration
 ```
 
 ---
@@ -236,14 +250,19 @@ docker compose ps
 
 ---
 
-## 🛠️ Database Management Scripts
+## 🛠️ Management & Verification Scripts
 
-| Command | Script | Purpose |
+| Command | Workspace / Script | Purpose |
 | :--- | :--- | :--- |
-| `npm run db:setup` | `tsx scripts/setup-db.ts` | **Idempotent, non-destructive bootstrap.** Creates database if missing and pushes schema tables if absent. Never drops or alters populated tables. |
-| `npm run db:check` | `tsx scripts/check-db.ts` | **Read-only audit.** Inspects connection, verifies the presence of all 8 tables, and displays live row counts. |
-| `npm run db:push` | `drizzle-kit push` | **Manual schema push.** Applies Drizzle schema changes directly to the target database. |
-| `npm test` | Node test runner | Runs all unit and pure health-shaping tests across `src/**/*.test.ts` and `scripts/**/*.test.ts`. |
+| `npm run dev` | Full-Stack (`backend/src/server.ts`) | Launches Express backend + Vite dev middleware orchestrator on port 3000. |
+| `npm run build` | Frontend (`frontend/vite.config.ts`) | Compiles production client bundle into `frontend/dist`. |
+| `npm run test` | Monorepo (`backend` & `frontend`) | Runs all 14 test suites (82 tests) across backend and frontend services. |
+| `npm run lint` | Monorepo (`tsc --noEmit`) | Strict TypeScript compiler validation across all monorepo source files. |
+| `npm run db:setup` | Backend (`backend/scripts/setup-db.ts`) | **Idempotent bootstrap.** Creates database if missing and verifies schema tables without altering data. |
+| `npm run db:check` | Backend (`backend/scripts/check-db.ts`) | **Read-only audit.** Inspects connection, verifies all 8 tables, and displays live row counts. |
+| `npm run db:seed` | Backend (`backend/scripts/seed.ts`) | Populates 30 days of realistic multi-domain demo data. |
+| `npm run db:push` | Backend (`drizzle-kit push`) | Applies Drizzle relational schema changes directly to the target database. |
+| `npm run clean:cache` | Root tooling (`scripts/clean-cache.mjs`) | Clears `.vite`, `.next`, and build caches across the monorepo. |
 
 > 💡 **Escape Hatch:** If you want to bypass database setup verification during `npm run dev` (e.g. in CI or custom environments), run:
 > ```bash

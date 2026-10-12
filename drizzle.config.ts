@@ -10,7 +10,7 @@ const user = process.env.SQL_ADMIN_USER || process.env.SQL_USER || "postgres";
 const password = process.env.SQL_ADMIN_PASSWORD || process.env.SQL_PASSWORD || "postgres";
 
 export default defineConfig({
-  schema: "./src/db/schema.ts",
+  schema: "./backend/src/db/schema.ts",
   out: "./drizzle",
   dialect: "postgresql",
   schemaFilter: ["public"],

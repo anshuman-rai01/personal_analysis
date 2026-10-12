@@ -29,6 +29,7 @@ import {
 import { assistantRouter } from './src/routes/assistant.ts';
 
 const execFileAsync = promisify(execFile);
+const PYTHON_CMD = process.env.PYTHON_CMD || (process.platform === 'win32' ? 'python' : 'python3');
 const app = express();
 const PORT = 3000;
 
@@ -643,7 +644,7 @@ app.post('/api/ml/train', requireAuth, async (req: AuthRequest, res) => {
     const args = [scriptPath, 'train', type];
     if (csvTempPath) args.push(csvTempPath);
 
-    const { stdout, stderr } = await execFileAsync('python3', args);
+    const { stdout, stderr } = await execFileAsync(PYTHON_CMD, args);
     if (csvTempPath && fs.existsSync(csvTempPath)) {
       fs.unlinkSync(csvTempPath);
     }
@@ -696,7 +697,7 @@ app.post('/api/simulation/run', requireAuth, async (req: AuthRequest, res) => {
   try {
     const { scenarioType, params } = req.body;
     const scriptPath = path.resolve('python_service/ml_engine.py');
-    const { stdout, stderr } = await execFileAsync('python3', [
+    const { stdout, stderr } = await execFileAsync(PYTHON_CMD, [
       scriptPath,
       'simulate',
       scenarioType || 'study_career',

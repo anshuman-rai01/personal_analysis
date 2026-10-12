@@ -128,6 +128,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return { success: false, error: 'Sign-in window already active. Please check your browser popup or wait.' };
     }
 
+    // Clear stale session/token data before attempting new Google Sign-In
+    localStorage.removeItem('omnilife_demo_user');
     isPopupInProgress.current = true;
     setAuthError(null);
 
@@ -142,7 +144,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (code === 'auth/popup-blocked') {
         const msg = 'Pop-up was blocked by your browser/iframe. Please allow pop-ups for this site, or sign in using Email or 1-Click Demo Login below!';
         setAuthError(msg);
-        // Try redirect fallback
         try {
           await signInWithRedirect(auth, googleAuthProvider);
         } catch {
@@ -156,8 +157,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       if (code === 'auth/unauthorized-domain') {
-        const currentHost = typeof window !== 'undefined' ? window.location.hostname : 'current domain';
-        const msg = `Domain "${currentHost}" is not authorized for Google Sign-In in Firebase project (stoked-sweep-k48x0). Please use "1-Click Demo Login" or Email/Password login, or add "${currentHost}" to Firebase Console > Authentication > Settings > Authorized Domains.`;
+        const currentHost = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
+        const activeProjId = auth.app.options.projectId || 'stoked-sweep-k48x0';
+        const msg = `Domain "${currentHost}" is not authorized for Google Sign-In in Firebase project "${activeProjId}". Please check Firebase Console > Authentication > Settings > Authorized Domains for "${activeProjId}", or use the 1-Click Login below.`;
         setAuthError(msg);
         return { success: false, error: msg };
       }

@@ -7,10 +7,13 @@ describe('Request Validation', () => {
   const validAssistantMsg = { role: 'assistant', text: 'Hello user' };
 
   it('accepts valid single-turn user message', () => {
-    const res = validateChatRequest({
-      messages: [validUserMsg],
-      clientDate: '2026-10-10',
-    });
+    const res = validateChatRequest(
+      {
+        messages: [validUserMsg],
+        clientDate: '2026-10-10',
+      },
+      new Date('2026-10-10T12:00:00Z')
+    );
     assert.equal(res.valid, true);
     assert.equal(res.messages?.length, 1);
     assert.equal(res.clientDate, '2026-10-10');

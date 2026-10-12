@@ -3,7 +3,7 @@
 
 OmniLife Studio is a full-stack personal analytics and decision-support web platform. It unifies four fundamental pillars of self-mastery—**Cognitive Study Tracking, Financial Management (in Indian Rupees ₹), Routine Habit Consistency, and SMART Goal Roadmaps**—into a single relational data platform.
 
-Beyond passive logging, OmniLife features a **1,200-record multivariate Machine Learning predictive engine**, an interactive **What-If Decision Simulator** with quantitative risk modeling, and a server-side **Google Gemini AI Mentor** grounded in real-time database state.
+Beyond passive logging, OmniLife features a **1,200-record multivariate Machine Learning predictive engine**, an interactive **What-If Decision Simulator** with quantitative risk modeling, and a server-side **Google Gemini Tool-Calling Assistant** for analytics, forecasts, and guided record management.
 
 ---
 
@@ -48,10 +48,10 @@ Beyond passive logging, OmniLife features a **1,200-record multivariate Machine 
 * **Quantitative Risk Score (0–100)**: Evaluates burnout risk from sleep deprivation and frugality fatigue from excessive spending cuts.
 * **Strategic Prescriptions**: Actionable recommendations with projected quantified gains.
 
-### 8. Gemini AI Mentor (Retrieval-Grounded)
-* **Multi-Model Resilience**: Intelligent fallback cascade across `gemini-3.7-flash`, `gemini-3.5-flash`, and `gemini-3.8-flash`.
-* **Database-Grounded Context**: Server queries user records from Cloud SQL PostgreSQL before prompting Gemini, ensuring factual grounding and zero hallucinations.
-* **Currency Enforcement**: Strict generation in **Indian Rupees (₹)**.
+### 8. Gemini Tool-Calling Assistant
+* **Tool-Calling Architecture**: Stateless Express agent executing structured tools (`build_report`, `list_entries`, `get_forecast`, `propose_entry`, `propose_delete`).
+* **Client-Confirmed Actions**: Writes and deletes require explicit user confirmation cards before execution.
+* **Currency Enforcement**: Strict numerical generation in **Indian Rupees (₹)**.
 
 ### 9. Authentication & User Management
 * **Dual-Mode System**:
@@ -89,36 +89,79 @@ Beyond passive logging, OmniLife features a **1,200-record multivariate Machine 
 
 ---
 
-## 📁 Repository Structure
+## 📁 Monorepo Architecture & Structure
+
+OmniLife Studio is organized as a maintainable full-stack monorepo using npm workspaces:
 
 ```
-├── server.ts                       # Express backend API & Gemini proxy
-├── src/
-│   ├── App.tsx                     # Main application entry point
-│   ├── main.tsx                    # React DOM client mount
-│   ├── components/
-│   │   ├── AuthView.tsx            # Login, Registration & Demo user management
-│   │   ├── ChatbotView.tsx         # Gemini AI Mentor interface (₹ INR)
-│   │   ├── DashboardView.tsx       # Central KPI analytics & charts
-│   │   ├── FinanceView.tsx         # Financial transactions ledger (₹ INR)
-│   │   ├── ForecastingView.tsx     # 1,200-record ML regression & projections
-│   │   ├── GoalsView.tsx           # SMART goal roadmaps & milestones
-│   │   ├── HabitsView.tsx          # 7-day interactive consistency matrix
-│   │   ├── Navbar.tsx              # Navigation bar & user account status
-│   │   ├── QuickLogModal.tsx       # Rapid multi-module entry modal
-│   │   ├── SimulationView.tsx      # What-If decision sliders & risk score
-│   │   └── StudyView.tsx           # Cognitive learning sessions tracker
-│   ├── context/
-│   │   └── AuthContext.tsx         # Firebase Auth & Demo session provider
-│   ├── db/
-│   │   ├── index.ts                # PostgreSQL connection pool
-│   │   ├── schema.ts               # Drizzle relational schema definitions
-│   │   └── users.ts                # User synchronization helpers
-│   └── types/
-│       └── index.ts                # TypeScript domain models
-├── scripts/
-│   └── ml_forecasting.py           # Python 3 ML ridge regression engine
-└── package.json
+├── frontend/                        # Client-side React 19 application
+│   ├── index.html                   # HTML entry point with Vite module script
+│   ├── vite.config.ts               # Vite configuration (React, Tailwind, proxy)
+│   ├── tsconfig.json                # Frontend TypeScript configuration
+│   ├── package.json                 # Frontend dependencies (React, Recharts, Lucide, Firebase)
+│   ├── public/                      # Static assets & datasets
+│   │   └── datasets/                # Sample 1,200-record CSV datasets (study, finance, habits)
+│   └── src/
+│       ├── App.tsx                  # Main application shell & tab routing
+│       ├── main.tsx                 # Client DOM mount
+│       ├── index.css                # Global styles & Tailwind utilities
+│       ├── features/                # Domain-driven feature modules
+│       │   ├── auth/                # Firebase Auth view & AuthContext
+│       │   ├── dashboard/           # KPI metrics & Synergy Index view
+│       │   ├── study/               # Cognitive session tracker view
+│       │   ├── finance/             # Income & expense ledger view (₹ INR)
+│       │   ├── habits/              # Habit consistency matrix view
+│       │   ├── goals/               # SMART goal roadmap view
+│       │   ├── forecasting/         # 1,200-record ML regression view
+│       │   ├── simulation/          # What-If scenario simulation view
+│       │   └── assistant/           # Floating Gemini chat widget & rich blocks
+│       ├── components/              # Shared UI components (Navbar, QuickLogModal, AlertBanner)
+│       ├── services/                # API client (apiFetch) & Firebase client SDK
+│       └── types/                   # TypeScript domain models & assistant types
+│
+├── backend/                         # Express REST API, Database & Server integrations
+│   ├── package.json                 # Backend dependencies (Express, Drizzle, pg, Firebase Admin)
+│   ├── tsconfig.json                # Backend TypeScript configuration
+│   ├── drizzle.config.ts            # Drizzle ORM configuration for PostgreSQL
+│   ├── python_service/              # Machine learning engine
+│   │   └── ml_engine.py             # Python 3 Ridge regression & What-If simulation engine
+│   ├── scripts/                     # Database bootstrapping and maintenance tooling
+│   │   ├── setup-db.ts              # Non-destructive schema setup & table verification
+│   │   ├── check-db.ts              # Connection diagnostic & live row count audit
+│   │   └── seed.ts                  # 30-day realistic historical data seeder
+│   └── src/
+│       ├── server.ts                # Express entry point & Vite dev/prod orchestrator
+│       ├── routes/index.ts          # Central API router aggregator (/api/*)
+│       ├── middleware/auth.ts       # Firebase ID token verification & guest mode fallback
+│       ├── config/firebase-admin.ts # Server-side Firebase Admin SDK initialization
+│       ├── db/                      # PostgreSQL persistence layer
+│       │   ├── index.ts             # Connection pool (pg.Pool) & Drizzle instance
+│       │   ├── schema.ts            # Drizzle relational schema definitions
+│       │   ├── health.ts            # Database health verification & masking logic
+│       │   ├── envCheck.ts          # Database credentials & environment validator
+│       │   ├── users.ts             # User profile synchronization helpers
+│       │   └── seedDefaults.ts      # Default profile seeding
+│       └── modules/                 # Modular API feature routers & services
+│           ├── health/              # Health check endpoint (/api/health)
+│           ├── users/               # Profile synchronization (/api/user/sync)
+│           ├── study/               # Study sessions CRUD (/api/study)
+│           ├── finance/             # Financial transactions CRUD (/api/finance)
+│           ├── habits/              # Habits & check-in logs (/api/habits)
+│           ├── goals/               # Goal roadmaps & progress (/api/goals)
+│           ├── forecasting/         # Python ML training bridge (/api/ml)
+│           ├── simulation/          # Scenario simulation engine (/api/simulation)
+│           ├── dashboard/           # Aggregated analytics (/api/dashboard/overview)
+│           ├── documents/           # PDFKit document generator (/api/download-*-pdf)
+│           └── assistant/           # Gemini AI agent, tool calling & RAG pipeline
+│
+├── docs/                            # Documentation
+│   └── IEEE_PAPER_DOCUMENTATION.md  # Academic paper documentation
+├── scripts/                         # Root maintenance tooling
+│   └── clean-cache.mjs              # Dev & build cache cleaner
+├── firebase-applet-config.json      # Firebase project credentials
+├── docker-compose.yml               # PostgreSQL 16 container definition
+├── .env.example                     # Environment template
+└── package.json                     # Root monorepo workspace configuration
 ```
 
 ---
@@ -127,6 +170,7 @@ Beyond passive logging, OmniLife features a **1,200-record multivariate Machine 
 
 ### 1. Prerequisites
 * **Node.js**: Version 20 or higher installed on your computer ([Download Node.js](https://nodejs.org/)).
+* **PostgreSQL**: Version 15 or 16+ running locally (or via Docker).
 * **Python**: Version 3.10+ (optional, for custom ML script execution).
 
 ---
@@ -136,19 +180,30 @@ Beyond passive logging, OmniLife features a **1,200-record multivariate Machine 
 #### Step 1: Open Terminal in VS Code
 Open VS Code, press ``Ctrl + ` `` (or go to **Terminal** > **New Terminal**).
 
-#### Step 2: Install All Dependencies (Crucial First Step)
-Before running the project, you must install the packages (`node_modules`):
+#### Step 2: Install All Dependencies
 ```bash
 npm install
 ```
-> 💡 **Why this is required:** When downloading the project zip, `node_modules` is not included. Running `npm install` installs `tsx`, `express`, `react`, `drizzle-kit`, and all build tools.
+> 💡 **Peer Dependencies Note (`.npmrc`):**
+> The repository includes an `.npmrc` with `legacy-peer-deps=true`. This is required because `@tailwindcss/vite` declares a peer dependency on Vite 8 / esbuild `^0.27 || ^0.28`, while Vite installs `esbuild@0.25.x`. A future dependency bump will resolve this upstream conflict.
 
-#### Step 3: Run the Development Server
+#### Step 3: Configure Environment Variables
+Copy the template configuration file:
+```bash
+cp .env.example .env
+```
+Open `.env` and fill in your real PostgreSQL password and Gemini API key:
+- `SQL_PASSWORD`: Your local PostgreSQL user password (replace `YOUR_SQL_PASSWORD_HERE`).
+- `SQL_ADMIN_PASSWORD`: Your PostgreSQL superuser/admin password (if separate, or leave equal to `SQL_PASSWORD`).
+- `GEMINI_API_KEY`: Your Google AI Studio API key.
+
+#### Step 4: Run the Development Server
 ```bash
 npm run dev
 ```
+> 🛡️ **Self-Healing Bootstrap:** `npm run dev` automatically triggers `predev` (`npm run db:setup`), which connects to PostgreSQL, creates the database if missing, and verifies all 8 schema tables before starting the web server.
 
-#### Step 4: Open in Your Browser
+#### Step 5: Open in Your Browser
 Once the server starts, open your browser and go to:
 ```
 http://localhost:3000
@@ -156,25 +211,75 @@ http://localhost:3000
 
 ---
 
-### ⚠️ Common Troubleshooting on Windows
+## 🗄️ Local Database Setup
 
-#### Issue A: `'tsx' is not recognized as an internal or external command`
-* **Cause**: You ran `npm run dev` before running `npm install`.
-* **Fix**: Simply run `npm install` in your terminal, wait for it to complete, and then run `npm run dev`.
+OmniLife Studio uses PostgreSQL with Drizzle ORM. You can run PostgreSQL either natively or with Docker.
 
-#### Issue B: `drizzle.config.json file does not exist`
-* **Fix**: A root `drizzle.config.ts` has been provided. If pushing database schema, simply run:
-  ```bash
-  npx drizzle-kit push
-  ```
+### Option A: Native PostgreSQL Service
 
-#### Issue C: PowerShell Execution Policy Restriction
-* If PowerShell gives a script error like `running scripts is disabled on this system`:
-  Run this in PowerShell:
-  ```powershell
-  Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
-  ```
-  Or run using Command Prompt (`cmd`) inside VS Code.
+#### Windows
+1. Download and run the PostgreSQL installer from [postgresql.org](https://www.postgresql.org/download/windows/) (or install via `winget install PostgreSQL.PostgreSQL`).
+2. Ensure the Windows service is running in PowerShell:
+   ```powershell
+   Get-Service -Name postgresql*
+   # If stopped, start it:
+   Start-Service -Name postgresql*
+   ```
+3. Set your postgres user password during installation and mirror it in `.env` as `SQL_PASSWORD="your_password"`.
+
+#### macOS / Linux
+```bash
+# macOS (Homebrew)
+brew install postgresql@16
+brew services start postgresql@16
+
+# Ubuntu / Debian
+sudo apt update && sudo apt install -y postgresql postgresql-contrib
+sudo systemctl start postgresql
+```
+
+### Option B: Docker Compose (Convenience)
+If you prefer Docker, a `docker-compose.yml` is provided:
+```bash
+# Start PostgreSQL 16 in the background
+docker compose up -d
+
+# Verify container is running
+docker compose ps
+```
+
+---
+
+## 🛠️ Management & Verification Scripts
+
+| Command | Workspace / Script | Purpose |
+| :--- | :--- | :--- |
+| `npm run dev` | Full-Stack (`backend/src/server.ts`) | Launches Express backend + Vite dev middleware orchestrator on port 3000. |
+| `npm run build` | Frontend (`frontend/vite.config.ts`) | Compiles production client bundle into `frontend/dist`. |
+| `npm run test` | Monorepo (`backend` & `frontend`) | Runs all 14 test suites (82 tests) across backend and frontend services. |
+| `npm run lint` | Monorepo (`tsc --noEmit`) | Strict TypeScript compiler validation across all monorepo source files. |
+| `npm run db:setup` | Backend (`backend/scripts/setup-db.ts`) | **Idempotent bootstrap.** Creates database if missing and verifies schema tables without altering data. |
+| `npm run db:check` | Backend (`backend/scripts/check-db.ts`) | **Read-only audit.** Inspects connection, verifies all 8 tables, and displays live row counts. |
+| `npm run db:seed` | Backend (`backend/scripts/seed.ts`) | Populates 30 days of realistic multi-domain demo data. |
+| `npm run db:push` | Backend (`drizzle-kit push`) | Applies Drizzle relational schema changes directly to the target database. |
+| `npm run clean:cache` | Root tooling (`scripts/clean-cache.mjs`) | Clears `.vite`, `.next`, and build caches across the monorepo. |
+
+> 💡 **Escape Hatch:** If you want to bypass database setup verification during `npm run dev` (e.g. in CI or custom environments), run:
+> ```bash
+> DB_SETUP_SKIP=true npm run dev
+> ```
+
+---
+
+## ⚠️ Troubleshooting Guide
+
+| Error / Symptom | Root Cause | Solution |
+| :--- | :--- | :--- |
+| `password authentication failed for user "postgres"` (HTTP 500) | `SQL_PASSWORD` or `SQL_ADMIN_PASSWORD` in `.env` is incorrect or contains placeholder text (`YOUR_...`). | Update `.env` with your actual PostgreSQL password. Run `npm run db:setup` to confirm credentials. |
+| `relation "finance_transactions" does not exist` (HTTP 500) | Database exists but schema tables have not been created yet. | Run `npm run db:setup` to push all 8 schema tables without dropping data. |
+| `connect ECONNREFUSED 127.0.0.1:5432` | PostgreSQL service is stopped or port `5432` is not reachable. | Start your PostgreSQL service (`Start-Service postgresql*` on Windows, `brew services start postgresql@16` on Mac, or `docker compose up -d`). |
+| `'tsx' is not recognized as an internal or external command` | `npm install` has not been run. | Run `npm install` in your terminal, then rerun `npm run dev`. |
+| PowerShell: `running scripts is disabled on this system` | Windows execution policy restriction. | Run `Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned` in PowerShell. |
 
 ---
 

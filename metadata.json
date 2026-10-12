@@ -1,6 +1,6 @@
 {
   "name": "OmniLife Studio - Life Analytics, Forecasting & Simulation",
-  "description": "Integrated personal intelligence platform combining Study, Finance, Habits, Goal Setting, 1200-record ML Forecasting, What-If Decision Simulations, and Gemini AI Chatbot with PostgreSQL storage.",
+  "description": "Integrated personal intelligence platform combining Study, Finance, Habits, Goal Setting, 1200-record ML Forecasting, What-If Decision Simulations, and Gemini AI Assistant with PostgreSQL storage.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

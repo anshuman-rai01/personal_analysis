@@ -92,32 +92,61 @@ Beyond passive logging, OmniLife features a **1,200-record multivariate Machine 
 ## 📁 Repository Structure
 
 ```
-├── server.ts                       # Express backend API & Gemini proxy
+├── server.ts                       # Express backend API & Vite server orchestrator
+├── python_service/
+│   └── ml_engine.py                # Python 3 ML multivariate regression & simulation
 ├── src/
-│   ├── App.tsx                     # Main application entry point
+│   ├── App.tsx                     # Main application shell & tab routing
 │   ├── main.tsx                    # React DOM client mount
 │   ├── components/
-│   │   ├── AuthView.tsx            # Login, Registration & Demo user management
-│   │   ├── assistant/              # Floating AI Assistant widget & block renderers
-│   │   ├── DashboardView.tsx       # Central KPI analytics & charts
-│   │   ├── FinanceView.tsx         # Financial transactions ledger (₹ INR)
-│   │   ├── ForecastingView.tsx     # 1,200-record ML regression & projections
-│   │   ├── GoalsView.tsx           # SMART goal roadmaps & milestones
-│   │   ├── HabitsView.tsx          # 7-day interactive consistency matrix
-│   │   ├── Navbar.tsx              # Navigation bar & user account status
-│   │   ├── QuickLogModal.tsx       # Rapid multi-module entry modal
-│   │   ├── SimulationView.tsx      # What-If decision sliders & risk score
-│   │   └── StudyView.tsx           # Cognitive learning sessions tracker
+│   │   ├── Navbar.tsx              # Navigation bar & authentication access control
+│   │   ├── QuickLogModal.tsx       # Rapid multi-module transaction/session modal
+│   │   ├── common/                 # Reusable UI primitives (AlertBanner, etc.)
+│   │   ├── assistant/              # AI Assistant chat widget & interactive blocks
+│   │   └── views/                  # Modular feature views (with barrel export)
+│   │       ├── AuthView.tsx        # Login, registration & demo account access
+│   │       ├── DashboardView.tsx   # Central KPI analytics & synergy index
+│   │       ├── FinanceView.tsx     # Financial transactions ledger (₹ INR)
+│   │       ├── ForecastingView.tsx # 1,200-record ML regression & confidence bands
+│   │       ├── GoalsView.tsx       # SMART goal roadmaps & milestone tracker
+│   │       ├── HabitsView.tsx      # 14-day interactive habit consistency matrix
+│   │       ├── SimulationView.tsx  # What-If decision sliders & risk evaluation
+│   │       └── StudyView.tsx       # Cognitive learning sessions & depth tracker
 │   ├── context/
-│   │   └── AuthContext.tsx         # Firebase Auth & Demo session provider
+│   │   └── AuthContext.tsx         # Firebase Auth, Google Sign-In & local fallback
 │   ├── db/
-│   │   ├── index.ts                # PostgreSQL connection pool
+│   │   ├── index.ts                # PostgreSQL connection pool (pg.Pool)
 │   │   ├── schema.ts               # Drizzle relational schema definitions
-│   │   └── users.ts                # User synchronization helpers
+│   │   ├── users.ts                # User profile synchronization helpers
+│   │   ├── seedDefaults.ts         # First-time demo data provisioning
+│   │   ├── health.ts               # Database health checks & connection masking
+│   │   └── envCheck.ts             # Environment credentials validator
+│   ├── routes/                     # Modular backend Express API routers
+│   │   ├── index.ts                # Central API router aggregator (/api/*)
+│   │   ├── health.ts               # Health status endpoint (/api/health)
+│   │   ├── user.ts                 # Profile sync route (/api/user/sync)
+│   │   ├── study.ts                # Study sessions CRUD (/api/study)
+│   │   ├── finance.ts              # Finance transactions CRUD (/api/finance)
+│   │   ├── habits.ts               # Habits & check-in logs (/api/habits)
+│   │   ├── goals.ts                # Goal roadmaps & progress (/api/goals)
+│   │   ├── ml.ts                   # Python ML training bridge (/api/ml)
+│   │   ├── simulation.ts           # Decision scenario simulator (/api/simulation)
+│   │   ├── dashboard.ts            # Aggregated analytics (/api/dashboard/overview)
+│   │   ├── docs.ts                 # PDF exports (IEEE Paper, Guide, Script)
+│   │   └── assistant.ts            # Gemini tool-calling assistant (/api/assistant)
+│   ├── assistant/                  # Server-side Gemini AI agent orchestration & tools
+│   ├── lib/
+│   │   ├── apiClient.ts            # Typed client-side fetch client
+│   │   ├── firebase.ts             # Client Firebase SDK initialization
+│   │   ├── firebase-admin.ts       # Server Firebase Admin SDK initialization
+│   │   └── pdfGenerator.ts         # PDFKit document generator (Guide, Paper, Script)
 │   └── types/
 │       └── index.ts                # TypeScript domain models
 ├── scripts/
-│   └── ml_forecasting.py           # Python 3 ML ridge regression engine
+│   ├── check-db.ts                 # Database connectivity diagnostic
+│   ├── setup-db.ts                 # Schema initialization & table creation
+│   ├── seed.ts                     # 30-day realistic historical data seeder
+│   └── clean-cache.mjs             # Cross-platform build & dev cache cleaner
 └── package.json
 ```
 

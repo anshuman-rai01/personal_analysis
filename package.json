@@ -1,26 +1,21 @@
 {
-  "name": "omnilife-studio",
+  "name": "react-example",
   "private": true,
-  "version": "1.0.0",
+  "version": "0.0.0",
+  "license": "MIT",
   "type": "module",
-  "workspaces": [
-    "frontend",
-    "backend"
-  ],
   "scripts": {
-    "predev": "tsx backend/scripts/setup-db.ts",
-    "dev": "tsx backend/src/server.ts",
-    "db:setup": "tsx backend/scripts/setup-db.ts",
-    "db:check": "tsx backend/scripts/check-db.ts",
-    "db:seed": "tsx backend/scripts/seed.ts",
-    "db:push": "drizzle-kit push --config=drizzle.config.ts",
-    "start": "tsx backend/src/server.ts",
-    "build": "npm --workspace=frontend run build",
-    "preview": "npm --workspace=frontend run preview",
-    "clean": "node -e \"const fs = require('fs'); fs.rmSync('frontend/dist', { recursive: true, force: true });\"",
-    "clean:cache": "node scripts/clean-cache.mjs",
+    "predev": "tsx scripts/setup-db.ts",
+    "dev": "tsx server.ts",
+    "db:setup": "tsx scripts/setup-db.ts",
+    "db:check": "tsx scripts/check-db.ts",
+    "db:push": "drizzle-kit push",
+    "start": "tsx server.ts",
+    "build": "vite build",
+    "preview": "vite preview",
+    "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit",
-    "test": "node --import tsx --test \"backend/**/*.test.ts\" \"frontend/**/*.test.ts\""
+    "test": "node --import tsx --test \"src/**/*.test.ts\" \"scripts/**/*.test.ts\""
   },
   "dependencies": {
     "@google/genai": "^2.4.0",

@@ -1,4 +1,5 @@
 import * as dotenv from 'dotenv';
+import path from 'path';
 import pg from 'pg';
 import { validateDbEnv } from '../src/db/envCheck.ts';
 import {
@@ -8,6 +9,7 @@ import {
 } from '../src/db/health.ts';
 
 dotenv.config();
+dotenv.config({ path: path.resolve(import.meta.dirname, '../../../.env') });
 
 async function main() {
   console.log('==================================================');

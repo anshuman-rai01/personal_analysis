@@ -1,4 +1,5 @@
 import * as dotenv from 'dotenv';
+import path from 'path';
 import pg from 'pg';
 import { spawn } from 'node:child_process';
 import { validateDbEnv } from '../src/db/envCheck.ts';
@@ -9,6 +10,7 @@ import {
 } from '../src/db/health.ts';
 
 dotenv.config();
+dotenv.config({ path: path.resolve(import.meta.dirname, '../../../.env') });
 
 // Escape hatch: DB_SETUP_SKIP=true exits 0 immediately
 if (process.env.DB_SETUP_SKIP === 'true') {

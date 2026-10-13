@@ -1,6 +1,11 @@
 import 'dotenv/config';
-import express from 'express';
+import dotenv from 'dotenv';
 import path from 'path';
+
+// Load from root .env if not found in current directory
+dotenv.config({ path: path.resolve(import.meta.dirname, '../../.env') });
+
+import express from 'express';
 import { createServer as createViteServer } from 'vite';
 import { pool } from './db/index.ts';
 import { validateDbEnv } from './db/envCheck.ts';

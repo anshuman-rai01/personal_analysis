@@ -1,4 +1,8 @@
 import 'dotenv/config';
+import dotenv from 'dotenv';
+import path from 'path';
+
+dotenv.config({ path: path.resolve(import.meta.dirname, '../../../.env') });
 import { db, pool } from '../src/db/index.ts';
 import {
   users,

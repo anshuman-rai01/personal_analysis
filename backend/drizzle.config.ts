@@ -1,8 +1,10 @@
 import { defineConfig } from "drizzle-kit";
 import * as dotenv from "dotenv";
+import path from "path";
 
 // Load environment variables from .env file.
 dotenv.config();
+dotenv.config({ path: path.resolve(import.meta.dirname, "../.env") });
 
 const sqlHost = process.env.SQL_HOST;
 const sqlDbName = process.env.SQL_DB_NAME;

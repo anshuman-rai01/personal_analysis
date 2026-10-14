@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Trash2, AlertTriangle, Check, X, RotateCcw, Loader2 } from 'lucide-react';
 import { ConfirmDeleteBlock as ConfirmDeleteBlockType } from '../../types/assistant.ts';
-import { useAuth } from '../auth/AuthContext.tsx';
+import { authedFetch } from '../../services/apiClient.ts';
 import { CardState } from './BlockRenderer.tsx';
 
 interface ConfirmDeleteBlockProps {
@@ -26,7 +26,6 @@ export const ConfirmDeleteBlock: React.FC<ConfirmDeleteBlockProps> = ({
   onDataChanged,
   onAppendMessage,
 }) => {
-  const { getAuthHeaders } = useAuth();
   const status = cardState?.status || 'idle';
   const isDeleting = status === 'deleting';
   const [failedIds, setFailedIds] = useState<number[]>([]);
@@ -37,7 +36,6 @@ export const ConfirmDeleteBlock: React.FC<ConfirmDeleteBlockProps> = ({
     onStateChange(block.id, { status: 'deleting' });
 
     const baseEndpoint = MODULE_DELETE_BASE[block.module];
-    const headers = getAuthHeaders();
     const idsToDelete = failedIds.length > 0 ? failedIds : block.entries.map(e => e.id);
 
     let successCount = 0;
@@ -46,9 +44,8 @@ export const ConfirmDeleteBlock: React.FC<ConfirmDeleteBlockProps> = ({
     // Sequential requests
     for (const id of idsToDelete) {
       try {
-        const res = await fetch(`${baseEndpoint}/${id}`, {
+        const res = await authedFetch(`${baseEndpoint}/${id}`, {
           method: 'DELETE',
-          headers,
         });
         if (res.ok) {
           successCount++;

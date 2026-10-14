@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import { ActiveTab } from '../../components/Navbar.tsx';
 import { DashboardMetrics, StudySession, FinanceTransaction, Habit, Goal } from '../../types/index.ts';
-import { useAuth } from '../auth/AuthContext.tsx';
+import { authedFetch } from '../../services/apiClient.ts';
 
 interface DashboardViewProps {
   setActiveTab: (tab: ActiveTab) => void;
@@ -29,9 +29,6 @@ interface DashboardViewProps {
 }
 
 export const DashboardView: React.FC<DashboardViewProps> = ({ setActiveTab, onOpenQuickLog, onOpenAssistant }) => {
-  const { user, isGuest, loading: authLoading, getAuthHeaders } = useAuth();
-  const isAuthenticated = Boolean(user && !isGuest);
-
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [recentStudy, setRecentStudy] = useState<StudySession[]>([]);
   const [recentFinance, setRecentFinance] = useState<FinanceTransaction[]>([]);
@@ -40,16 +37,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ setActiveTab, onOp
   const [loading, setLoading] = useState(false);
 
   const fetchDashboardData = async () => {
-    if (!isAuthenticated) return;
     setLoading(true);
     try {
-      const headers = getAuthHeaders();
       const [ovRes, stRes, finRes, habRes, goalRes] = await Promise.all([
-        fetch('/api/dashboard/overview', { headers }),
-        fetch('/api/study', { headers }),
-        fetch('/api/finance', { headers }),
-        fetch('/api/habits', { headers }),
-        fetch('/api/goals', { headers }),
+        authedFetch('/api/dashboard/overview'),
+        authedFetch('/api/study'),
+        authedFetch('/api/finance'),
+        authedFetch('/api/habits'),
+        authedFetch('/api/goals'),
       ]);
 
       if (ovRes.ok) setMetrics(await ovRes.json());
@@ -68,17 +63,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ setActiveTab, onOp
   };
 
   useEffect(() => {
-    if (isAuthenticated) {
-      fetchDashboardData();
-    } else {
-      setMetrics(null);
-      setRecentStudy([]);
-      setRecentFinance([]);
-      setHabitsList([]);
-      setGoalsList([]);
-      setLoading(false);
-    }
-  }, [isAuthenticated]);
+    fetchDashboardData();
+  }, []);
 
   return (
     <div className="space-y-8 animate-fadeIn">
@@ -106,11 +92,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ setActiveTab, onOp
             <span className="text-xs uppercase tracking-wider text-purple-200 font-bold">
               Life Synergy Index
             </span>
-            {isAuthenticated ? (
+            {metrics?.synergyIndex !== null && metrics?.synergyIndex !== undefined ? (
               <>
                 <div className="mt-2 flex items-baseline justify-center gap-1">
                   <span className="text-4xl font-black text-white">
-                    {metrics ? metrics.synergyIndex : 0}
+                    {metrics.synergyIndex}
                   </span>
                   <span className="text-purple-200 text-sm font-semibold">/100</span>
                 </div>
@@ -121,12 +107,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ setActiveTab, onOp
               </>
             ) : (
               <>
-                <div className="mt-2 flex items-center justify-center gap-1.5 py-1">
-                  <Lock className="w-4 h-4 text-pink-300" />
-                  <span className="text-lg font-bold text-white">Requires Login</span>
+                <div className="mt-2 flex items-baseline justify-center gap-1">
+                  <span className="text-4xl font-black text-white/50">--</span>
+                  <span className="text-purple-300/50 text-sm font-semibold">/100</span>
                 </div>
-                <div className="mt-2 text-[11px] text-pink-200 font-semibold flex items-center justify-center gap-1">
-                  <span>Sign in to calculate</span>
+                <div className="mt-2 text-[11px] text-purple-200/90 font-medium flex items-center justify-center gap-1">
+                  <span>Log activity to unlock your index</span>
                 </div>
               </>
             )}
@@ -136,14 +122,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ setActiveTab, onOp
         {/* Quick Launchpad Buttons */}
         <div className="mt-6 pt-6 border-t border-white/15 grid grid-cols-2 sm:grid-cols-4 gap-3">
           <button
-            onClick={(e) => {
-              if (!isAuthenticated) {
-                e.preventDefault();
-                setActiveTab('auth');
-                return;
-              }
-              setActiveTab('forecasting');
-            }}
+            onClick={() => setActiveTab('forecasting')}
             className="flex items-center justify-between p-3 rounded-xl bg-white/10 hover:bg-white/20 border border-white/15 text-left transition-all group backdrop-blur-sm"
           >
             <div>
@@ -154,14 +133,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ setActiveTab, onOp
           </button>
 
           <button
-            onClick={(e) => {
-              if (!isAuthenticated) {
-                e.preventDefault();
-                setActiveTab('auth');
-                return;
-              }
-              setActiveTab('simulation');
-            }}
+            onClick={() => setActiveTab('simulation')}
             className="flex items-center justify-between p-3 rounded-xl bg-white/10 hover:bg-white/20 border border-white/15 text-left transition-all group backdrop-blur-sm"
           >
             <div>
@@ -172,14 +144,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ setActiveTab, onOp
           </button>
 
           <button
-            onClick={(e) => {
-              if (!isAuthenticated) {
-                e.preventDefault();
-                setActiveTab('auth');
-                return;
-              }
-              onOpenAssistant?.();
-            }}
+            onClick={() => onOpenAssistant?.()}
             className="flex items-center justify-between p-3 rounded-xl bg-white/10 hover:bg-white/20 border border-white/15 text-left transition-all group backdrop-blur-sm"
           >
             <div>
@@ -190,36 +155,25 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ setActiveTab, onOp
           </button>
 
           <button
-            onClick={(e) => {
-              if (!isAuthenticated) {
-                e.preventDefault();
-                setActiveTab('auth');
-                return;
-              }
-              onOpenQuickLog();
-            }}
+            onClick={onOpenQuickLog}
             className="flex items-center justify-between p-3 rounded-xl bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white font-bold text-left transition-all group shadow-md"
           >
             <div>
               <p className="text-xs font-bold text-white">Log New Activity</p>
-              <p className="text-[11px] text-pink-100">{isAuthenticated ? 'Study, Money, Habits' : 'Sign in to record'}</p>
+              <p className="text-[11px] text-pink-100">Study, Money, Habits</p>
             </div>
-            {isAuthenticated ? (
-              <PlusCircle className="w-4 h-4 text-white group-hover:rotate-90 transition-transform" />
-            ) : (
-              <LogIn className="w-4 h-4 text-white group-hover:translate-x-0.5 transition-transform" />
-            )}
+            <PlusCircle className="w-4 h-4 text-white group-hover:rotate-90 transition-transform" />
           </button>
         </div>
       </div>
 
-      {authLoading || (isAuthenticated && loading && !metrics) ? (
+      {loading && !metrics ? (
         <div className="p-16 text-center bg-white rounded-3xl border border-purple-100 shadow-sm">
           <div className="inline-block animate-spin rounded-full h-10 w-10 border-4 border-purple-200 border-t-purple-600 mb-4" />
           <h3 className="text-base font-bold text-purple-950">Loading Dashboard Metrics</h3>
           <p className="text-xs text-slate-500 mt-1">Connecting to database and aggregating records...</p>
         </div>
-      ) : isAuthenticated ? (
+      ) : (
         <>
           {/* 4 Primary KPI Cards in White & Pink/Purple theme */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -620,160 +574,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ setActiveTab, onOp
         </div>
       </div>
     </>
-  ) : (
-    /* Unauthenticated Generic Fallback UI & Call-to-Action */
-    <div className="space-y-6">
-      {/* Main Call-to-Action Card */}
-      <div className="relative overflow-hidden rounded-3xl bg-white border border-purple-100 p-8 sm:p-10 shadow-sm text-center">
-        <div className="max-w-2xl mx-auto space-y-4">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-purple-50 border border-purple-200 text-purple-700 text-xs font-bold">
-            <Lock className="w-3.5 h-3.5 text-pink-500" />
-            <span>Authentication Required for Personal Analytics</span>
-          </div>
-
-          <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-            Unlock Your Personal Synergy Dashboard
-          </h2>
-
-          <p className="text-sm sm:text-base text-slate-600 leading-relaxed">
-            Your study hours, financial ledger, habit streaks, and goal roadmap are securely tied to your user account. Sign in or register to log activities, track continuous progress, and generate personalized ML insights.
-          </p>
-
-          <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
-            <button
-              onClick={() => setActiveTab('auth')}
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-purple-700 via-fuchsia-600 to-pink-600 hover:from-purple-800 hover:to-pink-700 text-white font-bold text-sm shadow-lg shadow-purple-500/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
-            >
-              <LogIn className="w-4 h-4" />
-              <span>Login / Create Account</span>
-              <ArrowRight className="w-4 h-4 ml-1" />
-            </button>
-
-            <button
-              onClick={(e) => {
-                if (!isAuthenticated) {
-                  e.preventDefault();
-                  setActiveTab('auth');
-                  return;
-                }
-                setActiveTab('simulation');
-              }}
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-900 border border-purple-200 font-bold text-sm transition-all"
-            >
-              <SlidersHorizontal className="w-4 h-4 text-purple-600" />
-              <span>Explore What-If Simulator</span>
-            </button>
-          </div>
-
-          <p className="text-xs text-slate-400 pt-2">
-            Tip: You can use the instant 1-Click Demo Account on the login page to test all features with pre-seeded data.
-          </p>
-        </div>
-      </div>
-
-      {/* Feature Showcase Grid - 4 Preview Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div
-          onClick={() => setActiveTab('auth')}
-          className="cursor-pointer bg-white hover:bg-purple-50/50 border border-purple-100 hover:border-purple-300 rounded-2xl p-5 transition-all shadow-xs group"
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-purple-700 uppercase tracking-wider">Study &amp; Learning</span>
-            <div className="p-2 rounded-xl bg-purple-100 text-purple-700 group-hover:bg-purple-200">
-              <BookOpen className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="mt-3">
-            <div className="text-base font-bold text-slate-900 flex items-center gap-1.5">
-              <Lock className="w-4 h-4 text-slate-400" />
-              <span>Deep Work Analytics</span>
-            </div>
-            <p className="mt-1 text-xs text-slate-500 leading-relaxed">
-              Log study sessions, track focus ratings, and analyze topic retention across courses.
-            </p>
-            <div className="mt-3 pt-3 border-t border-purple-50 flex items-center justify-between text-[11px] font-semibold text-purple-600">
-              <span>Sign in to record</span>
-              <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
-            </div>
-          </div>
-        </div>
-
-        <div
-          onClick={() => setActiveTab('auth')}
-          className="cursor-pointer bg-white hover:bg-pink-50/50 border border-purple-100 hover:border-pink-300 rounded-2xl p-5 transition-all shadow-xs group"
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-pink-600 uppercase tracking-wider">Net Money Saved</span>
-            <div className="p-2 rounded-xl bg-pink-100 text-pink-600 group-hover:bg-pink-200">
-              <Coins className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="mt-3">
-            <div className="text-base font-bold text-slate-900 flex items-center gap-1.5">
-              <Lock className="w-4 h-4 text-slate-400" />
-              <span>Financial Ledger</span>
-            </div>
-            <p className="mt-1 text-xs text-slate-500 leading-relaxed">
-              Track income, categorize outflow expenses, and monitor live savings rates with PostgreSQL storage.
-            </p>
-            <div className="mt-3 pt-3 border-t border-pink-50 flex items-center justify-between text-[11px] font-semibold text-pink-600">
-              <span>Sign in to record</span>
-              <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
-            </div>
-          </div>
-        </div>
-
-        <div
-          onClick={() => setActiveTab('auth')}
-          className="cursor-pointer bg-white hover:bg-fuchsia-50/50 border border-purple-100 hover:border-fuchsia-300 rounded-2xl p-5 transition-all shadow-xs group"
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-fuchsia-600 uppercase tracking-wider">Habit Consistency</span>
-            <div className="p-2 rounded-xl bg-fuchsia-100 text-fuchsia-600 group-hover:bg-fuchsia-200">
-              <Flame className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="mt-3">
-            <div className="text-base font-bold text-slate-900 flex items-center gap-1.5">
-              <Lock className="w-4 h-4 text-slate-400" />
-              <span>Streak Tracking</span>
-            </div>
-            <p className="mt-1 text-xs text-slate-500 leading-relaxed">
-              Establish daily disciplines, maintain unbroken streaks, and track weekly target compliance.
-            </p>
-            <div className="mt-3 pt-3 border-t border-fuchsia-50 flex items-center justify-between text-[11px] font-semibold text-fuchsia-600">
-              <span>Sign in to record</span>
-              <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
-            </div>
-          </div>
-        </div>
-
-        <div
-          onClick={() => setActiveTab('auth')}
-          className="cursor-pointer bg-white hover:bg-purple-50/50 border border-purple-100 hover:border-purple-300 rounded-2xl p-5 transition-all shadow-xs group"
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-purple-800 uppercase tracking-wider">Target Goals</span>
-            <div className="p-2 rounded-xl bg-purple-100 text-purple-800 group-hover:bg-purple-200">
-              <Target className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="mt-3">
-            <div className="text-base font-bold text-slate-900 flex items-center gap-1.5">
-              <Lock className="w-4 h-4 text-slate-400" />
-              <span>Strategic Roadmap</span>
-            </div>
-            <p className="mt-1 text-xs text-slate-500 leading-relaxed">
-              Define milestones, track live completion progress, and realize long-term life objectives.
-            </p>
-            <div className="mt-3 pt-3 border-t border-purple-50 flex items-center justify-between text-[11px] font-semibold text-purple-700">
-              <span>Sign in to record</span>
-              <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
   )}
 </div>
 );

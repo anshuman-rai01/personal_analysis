@@ -12,13 +12,11 @@ import {
   Database
 } from 'lucide-react';
 import { Habit, HabitLog } from '../../types/index.ts';
-import { useAuth } from '../auth/AuthContext.tsx';
 import confetti from 'canvas-confetti';
 import { apiFetch, getLocalDateString } from '../../services/apiClient.ts';
 import { AlertBanner } from '../../components/AlertBanner.tsx';
 
 export const HabitsView: React.FC = () => {
-  const { getAuthHeaders } = useAuth();
   const [habitsList, setHabitsList] = useState<Habit[]>([]);
   const [logs, setLogs] = useState<HabitLog[]>([]);
   const [loading, setLoading] = useState(true);
@@ -41,9 +39,7 @@ export const HabitsView: React.FC = () => {
   const fetchHabitsAndLogs = async () => {
     setLoading(true);
     try {
-      const data = await apiFetch<{ habits: Habit[]; logs: HabitLog[] }>('/api/habits', {
-        headers: getAuthHeaders(),
-      });
+      const data = await apiFetch<{ habits: Habit[]; logs: HabitLog[] }>('/api/habits');
       setHabitsList(data.habits || []);
       setLogs(data.logs || []);
     } catch (e: any) {
@@ -67,10 +63,6 @@ export const HabitsView: React.FC = () => {
     try {
       const newHabit = await apiFetch<Habit>('/api/habits', {
         method: 'POST',
-        headers: {
-          ...getAuthHeaders(),
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({
           name: name.trim(),
           category,
@@ -95,10 +87,6 @@ export const HabitsView: React.FC = () => {
     try {
       const result = await apiFetch<{ completed: number }>(`/api/habits/${habitId}/toggle`, {
         method: 'POST',
-        headers: {
-          ...getAuthHeaders(),
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({ date: dateStr }),
       });
 
@@ -120,7 +108,6 @@ export const HabitsView: React.FC = () => {
     try {
       await apiFetch(`/api/habits/${id}`, {
         method: 'DELETE',
-        headers: getAuthHeaders(),
       });
       setHabitsList(habitsList.filter((h) => h.id !== id));
       setLogs(logs.filter((l) => l.habitId !== id));

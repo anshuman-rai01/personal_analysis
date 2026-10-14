@@ -13,13 +13,11 @@ import {
   Database
 } from 'lucide-react';
 import { Goal, GoalMilestone } from '../../types/index.ts';
-import { useAuth } from '../auth/AuthContext.tsx';
 import confetti from 'canvas-confetti';
 import { apiFetch } from '../../services/apiClient.ts';
 import { AlertBanner } from '../../components/AlertBanner.tsx';
 
 export const GoalsView: React.FC = () => {
-  const { getAuthHeaders } = useAuth();
   const [goalsList, setGoalsList] = useState<Goal[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -37,9 +35,7 @@ export const GoalsView: React.FC = () => {
   const fetchGoals = async () => {
     setLoading(true);
     try {
-      const data = await apiFetch<Goal[]>('/api/goals', {
-        headers: getAuthHeaders(),
-      });
+      const data = await apiFetch<Goal[]>('/api/goals');
       setGoalsList(data);
     } catch (e: any) {
       console.error('Failed to load goals:', e);
@@ -67,10 +63,6 @@ export const GoalsView: React.FC = () => {
 
       const newGoal = await apiFetch<Goal>('/api/goals', {
         method: 'POST',
-        headers: {
-          ...getAuthHeaders(),
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({
           title: title.trim(),
           module,
@@ -120,10 +112,6 @@ export const GoalsView: React.FC = () => {
     try {
       const updated = await apiFetch<Goal>(`/api/goals/${goal.id}`, {
         method: 'PUT',
-        headers: {
-          ...getAuthHeaders(),
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({
           milestones: updatedMilestones,
           currentValue: newCurrent,
@@ -142,7 +130,6 @@ export const GoalsView: React.FC = () => {
     try {
       await apiFetch(`/api/goals/${id}`, {
         method: 'DELETE',
-        headers: getAuthHeaders(),
       });
       setGoalsList(goalsList.filter((g) => g.id !== id));
     } catch (e: any) {

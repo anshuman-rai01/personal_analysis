@@ -16,10 +16,9 @@ import {
   Award
 } from 'lucide-react';
 import { SimulationResult, SavedScenario } from '../../types/index.ts';
-import { useAuth } from '../auth/AuthContext.tsx';
+import { authedFetch } from '../../services/apiClient.ts';
 
 export const SimulationView: React.FC = () => {
-  const { getAuthHeaders } = useAuth();
   const [scenarioType, setScenarioType] = useState<'study_career' | 'wealth_accumulation' | 'lifestyle_habits'>('study_career');
   const [simulationResult, setSimulationResult] = useState<SimulationResult | null>(null);
   const [savedScenarios, setSavedScenarios] = useState<SavedScenario[]>([]);
@@ -71,9 +70,8 @@ export const SimulationView: React.FC = () => {
         };
       }
 
-      const res = await fetch('/api/simulation/run', {
+      const res = await authedFetch('/api/simulation/run', {
         method: 'POST',
-        headers: getAuthHeaders(),
         body: JSON.stringify({ scenarioType, params }),
       });
 
@@ -88,7 +86,7 @@ export const SimulationView: React.FC = () => {
 
   const fetchSavedScenarios = async () => {
     try {
-      const res = await fetch('/api/simulation/saved', { headers: getAuthHeaders() });
+      const res = await authedFetch('/api/simulation/saved');
       if (res.ok) {
         setSavedScenarios(await res.json());
       }
@@ -121,9 +119,8 @@ export const SimulationView: React.FC = () => {
     setSaving(true);
     try {
       const finalName = scenarioName.trim() || `Scenario: ${scenarioType.replace('_', ' ').toUpperCase()}`;
-      const res = await fetch('/api/simulation/save', {
+      const res = await authedFetch('/api/simulation/save', {
         method: 'POST',
-        headers: getAuthHeaders(),
         body: JSON.stringify({
           name: finalName,
           category: scenarioType,
@@ -157,9 +154,8 @@ export const SimulationView: React.FC = () => {
 
   const handleDeleteSaved = async (id: number) => {
     try {
-      const res = await fetch(`/api/simulation/${id}`, {
+      const res = await authedFetch(`/api/simulation/${id}`, {
         method: 'DELETE',
-        headers: getAuthHeaders(),
       });
       if (res.ok) {
         setSavedScenarios(savedScenarios.filter((s) => s.id !== id));

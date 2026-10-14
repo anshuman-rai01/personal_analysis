@@ -11,10 +11,9 @@ import {
   FileCheck
 } from 'lucide-react';
 import { ForecastModelResult } from '../../types/index.ts';
-import { useAuth } from '../auth/AuthContext.tsx';
+import { authedFetch } from '../../services/apiClient.ts';
 
 export const ForecastingView: React.FC = () => {
-  const { getAuthHeaders } = useAuth();
   const [selectedDataset, setSelectedDataset] = useState<'study' | 'finance' | 'habits'>('study');
   const [modelResult, setModelResult] = useState<ForecastModelResult | null>(null);
   const [loading, setLoading] = useState(false);
@@ -41,9 +40,8 @@ export const ForecastingView: React.FC = () => {
     setLoading(true);
     setUploadError(null);
     try {
-      const res = await fetch('/api/ml/train', {
+      const res = await authedFetch('/api/ml/train', {
         method: 'POST',
-        headers: getAuthHeaders(),
         body: JSON.stringify({
           datasetType: selectedDataset,
           customCsvContent: useCustom ? customCsvContent : undefined,

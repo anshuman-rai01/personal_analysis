@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Check, X, RotateCcw, Loader2 } from 'lucide-react';
 import { ConfirmEntryBlock as ConfirmEntryBlockType } from '../../types/assistant.ts';
-import { useAuth } from '../auth/AuthContext.tsx';
+import { authedFetch } from '../../services/apiClient.ts';
 import { CardState } from './BlockRenderer.tsx';
 
 interface ConfirmEntryBlockProps {
@@ -26,7 +26,6 @@ export const ConfirmEntryBlock: React.FC<ConfirmEntryBlockProps> = ({
   onDataChanged,
   onAppendMessage,
 }) => {
-  const { getAuthHeaders } = useAuth();
   const status = cardState?.status || 'idle';
   const isSaving = status === 'saving';
 
@@ -37,14 +36,8 @@ export const ConfirmEntryBlock: React.FC<ConfirmEntryBlockProps> = ({
 
     try {
       const endpoint = MODULE_ENDPOINTS[block.module];
-      if (!endpoint) throw new Error('Unknown module endpoint');
-
-      const res = await fetch(endpoint, {
+      const res = await authedFetch(endpoint, {
         method: 'POST',
-        headers: {
-          ...getAuthHeaders(),
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify(block.payload),
       });
 

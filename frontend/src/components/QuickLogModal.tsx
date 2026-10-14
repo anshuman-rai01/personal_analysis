@@ -7,7 +7,6 @@ import {
   Database,
   Sparkles
 } from 'lucide-react';
-import { useAuth } from '../features/auth/AuthContext.tsx';
 import { apiFetch, getLocalDateString } from '../services/apiClient.ts';
 import { AlertBanner } from './AlertBanner.tsx';
 
@@ -18,7 +17,6 @@ interface QuickLogModalProps {
 }
 
 export const QuickLogModal: React.FC<QuickLogModalProps> = ({ isOpen, onClose, onSuccess }) => {
-  const { getAuthHeaders } = useAuth();
   const [activeType, setActiveType] = useState<'study' | 'finance' | 'habit'>('study');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -51,10 +49,6 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({ isOpen, onClose, o
         if (!studySubject || !studyTopic) return;
         await apiFetch('/api/study', {
           method: 'POST',
-          headers: {
-            ...getAuthHeaders(),
-            'Content-Type': 'application/json',
-          },
           body: JSON.stringify({
             subject: studySubject,
             topic: studyTopic,
@@ -69,10 +63,6 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({ isOpen, onClose, o
         if (!financeTitle || !financeAmount) return;
         await apiFetch('/api/finance', {
           method: 'POST',
-          headers: {
-            ...getAuthHeaders(),
-            'Content-Type': 'application/json',
-          },
           body: JSON.stringify({
             title: financeTitle,
             type: financeType,
@@ -86,10 +76,6 @@ export const QuickLogModal: React.FC<QuickLogModalProps> = ({ isOpen, onClose, o
         if (!habitName) return;
         await apiFetch('/api/habits', {
           method: 'POST',
-          headers: {
-            ...getAuthHeaders(),
-            'Content-Type': 'application/json',
-          },
           body: JSON.stringify({
             name: habitName,
             category: habitCategory,

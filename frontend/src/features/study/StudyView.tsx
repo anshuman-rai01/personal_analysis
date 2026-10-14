@@ -13,12 +13,10 @@ import {
   Database
 } from 'lucide-react';
 import { StudySession } from '../../types/index.ts';
-import { useAuth } from '../auth/AuthContext.tsx';
 import { apiFetch, getLocalDateString } from '../../services/apiClient.ts';
 import { AlertBanner } from '../../components/AlertBanner.tsx';
 
 export const StudyView: React.FC = () => {
-  const { getAuthHeaders } = useAuth();
   const [sessions, setSessions] = useState<StudySession[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -39,9 +37,7 @@ export const StudyView: React.FC = () => {
   const fetchSessions = async () => {
     setLoading(true);
     try {
-      const data = await apiFetch<StudySession[]>('/api/study', {
-        headers: getAuthHeaders(),
-      });
+      const data = await apiFetch<StudySession[]>('/api/study');
       setSessions(data);
     } catch (e: any) {
       console.error('Failed to load study sessions:', e);
@@ -64,10 +60,6 @@ export const StudyView: React.FC = () => {
     try {
       const newRecord = await apiFetch<StudySession>('/api/study', {
         method: 'POST',
-        headers: {
-          ...getAuthHeaders(),
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({
           subject: subject.trim(),
           topic: topic.trim(),
@@ -95,7 +87,6 @@ export const StudyView: React.FC = () => {
     try {
       await apiFetch(`/api/study/${id}`, {
         method: 'DELETE',
-        headers: getAuthHeaders(),
       });
       setSessions(sessions.filter((s) => s.id !== id));
     } catch (err: any) {

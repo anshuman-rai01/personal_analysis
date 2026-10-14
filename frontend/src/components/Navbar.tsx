@@ -9,10 +9,9 @@ import {
   SlidersHorizontal,
   Bot,
   Plus,
-  LogIn,
   LogOut,
   Database,
-  Sparkles
+  Sparkles,
 } from 'lucide-react';
 import { useAuth } from '../features/auth/AuthContext.tsx';
 
@@ -24,25 +23,13 @@ export type ActiveTab =
   | 'goals'
   | 'forecasting'
   | 'simulation'
-  | 'assistant'
-  | 'auth';
-
-export const DEFAULT_PROTECTED_TABS: ActiveTab[] = [
-  'study',
-  'finance',
-  'habits',
-  'goals',
-  'forecasting',
-  'simulation',
-  'assistant',
-];
+  | 'assistant';
 
 interface NavbarProps {
   activeTab: ActiveTab;
   setActiveTab: (tab: ActiveTab) => void;
   onOpenQuickLog: () => void;
   onOpenAssistant?: () => void;
-  protectedTabs?: ActiveTab[];
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -50,20 +37,10 @@ export const Navbar: React.FC<NavbarProps> = ({
   setActiveTab,
   onOpenQuickLog,
   onOpenAssistant,
-  protectedTabs = DEFAULT_PROTECTED_TABS,
 }) => {
-  const { user, isGuest, logout } = useAuth();
-  const isAuthenticated = Boolean(user && !isGuest);
+  const { user, logout } = useAuth();
 
   const handleTabClick = (tabId: ActiveTab) => {
-    // Intercept clicks: check authentication state for protected tabs
-    if (protectedTabs.includes(tabId) && !isAuthenticated) {
-      // Trigger sign-in: prevent tab change and immediately redirect to login page
-      setActiveTab('auth');
-      return;
-    }
-
-    // Allow access: proceed with navigation normally
     setActiveTab(tabId);
     if (tabId === 'assistant' && onOpenAssistant) {
       onOpenAssistant();
@@ -106,32 +83,19 @@ export const Navbar: React.FC<NavbarProps> = ({
             </div>
           </div>
 
-          {/* Quick Action & Auth controls */}
+          {/* Quick Action & User Profile controls */}
           <div className="flex items-center gap-2 sm:gap-3">
-            {/* Conditionally render Quick Log button: hidden on auth tab, visible on dashboard & other tabs */}
-            {activeTab !== 'auth' && (
-              <button
-                onClick={() => {
-                  if (!isAuthenticated) {
-                    setActiveTab('auth');
-                    return;
-                  }
-                  onOpenQuickLog();
-                }}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 text-xs font-semibold rounded-lg bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-700 hover:to-pink-600 text-white shadow-md shadow-pink-500/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
-              >
-                <Plus className="w-4 h-4" />
-                <span>Quick Log</span>
-              </button>
-            )}
+            <button
+              onClick={onOpenQuickLog}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 text-xs font-semibold rounded-lg bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-700 hover:to-pink-600 text-white shadow-md shadow-pink-500/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Quick Log</span>
+            </button>
 
-            {user && !isGuest ? (
+            {user && (
               <div className="flex items-center gap-2 bg-purple-50/80 border border-purple-200/80 rounded-lg p-1 pr-2">
-                <button
-                  onClick={() => setActiveTab('auth')}
-                  className="flex items-center gap-2 hover:opacity-80 transition-opacity"
-                  title="View Account Profile"
-                >
+                <div className="flex items-center gap-2">
                   {user.photoURL ? (
                     <img
                       src={user.photoURL}
@@ -143,10 +107,10 @@ export const Navbar: React.FC<NavbarProps> = ({
                       {user.email ? user.email[0].toUpperCase() : 'U'}
                     </div>
                   )}
-                  <span className="text-xs font-semibold text-purple-900 hidden md:inline truncate max-w-[100px]">
+                  <span className="text-xs font-semibold text-purple-900 hidden md:inline truncate max-w-[120px]">
                     {user.displayName || user.email?.split('@')[0]}
                   </span>
-                </button>
+                </div>
                 <button
                   onClick={logout}
                   title="Sign out"
@@ -155,18 +119,6 @@ export const Navbar: React.FC<NavbarProps> = ({
                   <LogOut className="w-3.5 h-3.5" />
                 </button>
               </div>
-            ) : (
-              <button
-                onClick={() => setActiveTab('auth')}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-3 sm:py-2 text-xs font-bold rounded-lg transition-all shadow-xs ${
-                  activeTab === 'auth'
-                    ? 'bg-purple-950 text-white shadow-md'
-                    : 'bg-white hover:bg-purple-50 text-purple-900 border border-purple-200'
-                }`}
-              >
-                <LogIn className="w-3.5 h-3.5 text-pink-600" />
-                <span>Login / Register</span>
-              </button>
             )}
           </div>
         </div>

@@ -14,12 +14,10 @@ import {
   Database
 } from 'lucide-react';
 import { FinanceTransaction } from '../../types/index.ts';
-import { useAuth } from '../auth/AuthContext.tsx';
 import { apiFetch, getLocalDateString } from '../../services/apiClient.ts';
 import { AlertBanner } from '../../components/AlertBanner.tsx';
 
 export const FinanceView: React.FC = () => {
-  const { getAuthHeaders } = useAuth();
   const [transactions, setTransactions] = useState<FinanceTransaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -39,9 +37,7 @@ export const FinanceView: React.FC = () => {
   const fetchTransactions = async () => {
     setLoading(true);
     try {
-      const data = await apiFetch<FinanceTransaction[]>('/api/finance', {
-        headers: getAuthHeaders(),
-      });
+      const data = await apiFetch<FinanceTransaction[]>('/api/finance');
       setTransactions(data);
     } catch (e: any) {
       console.error('Failed to load transactions:', e);
@@ -64,10 +60,6 @@ export const FinanceView: React.FC = () => {
     try {
       const newRecord = await apiFetch<FinanceTransaction>('/api/finance', {
         method: 'POST',
-        headers: {
-          ...getAuthHeaders(),
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({
           title: title.trim(),
           type,
@@ -95,7 +87,6 @@ export const FinanceView: React.FC = () => {
     try {
       await apiFetch(`/api/finance/${id}`, {
         method: 'DELETE',
-        headers: getAuthHeaders(),
       });
       setTransactions(transactions.filter((t) => t.id !== id));
     } catch (err: any) {

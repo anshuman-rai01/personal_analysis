@@ -11,7 +11,7 @@ import {
   Minimize2,
   Maximize2,
 } from 'lucide-react';
-import { useAuth } from '../auth/AuthContext.tsx';
+import { authedFetch } from '../../services/apiClient.ts';
 import { ChatMessage, Block } from '../../types/assistant.ts';
 import { BlockRenderer, CardState } from './BlockRenderer.tsx';
 
@@ -32,7 +32,6 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({
   openSignal,
   renderCustomBlock,
 }) => {
-  const { isGuest, getAuthHeaders } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>([
@@ -128,14 +127,8 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({
       const controller = new AbortController();
       abortControllerRef.current = controller;
 
-      const headers = {
-        ...getAuthHeaders(),
-        'Content-Type': 'application/json',
-      };
-
-      const res = await fetch('/api/assistant/chat', {
+      const res = await authedFetch('/api/assistant/chat', {
         method: 'POST',
-        headers,
         signal: controller.signal,
         body: JSON.stringify({
           messages: historyPayload,
@@ -232,14 +225,6 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({
               </button>
             </div>
           </div>
-
-          {/* Guest Writes Notice */}
-          {isGuest && (
-            <div className="bg-amber-50/90 border-b border-amber-200 px-3 py-1.5 text-[11px] text-amber-800 flex items-center gap-1.5 shrink-0">
-              <AlertCircle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-              <span>Sign in to let me save or delete records.</span>
-            </div>
-          )}
 
           {/* Messages Scroll Area */}
           <div className="flex-1 overflow-y-auto p-4 space-y-3.5 bg-slate-50/50">

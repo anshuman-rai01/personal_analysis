@@ -4,7 +4,7 @@
  */
 
 import React, { useState } from 'react';
-import { AuthProvider } from './features/auth/AuthContext.tsx';
+import { AuthProvider, useAuth } from './features/auth/AuthContext.tsx';
 import { AuthView } from './features/auth/AuthView.tsx';
 import { DashboardView } from './features/dashboard/DashboardView.tsx';
 import { StudyView } from './features/study/StudyView.tsx';
@@ -104,7 +104,6 @@ function MainApp() {
         {activeTab === 'goals' && <GoalsView />}
         {activeTab === 'forecasting' && <ForecastingView />}
         {activeTab === 'simulation' && <SimulationView />}
-        {activeTab === 'auth' && <AuthView onNavigateToDashboard={() => setActiveTab('dashboard')} />}
       </main>
 
       {/* Footer */}
@@ -137,10 +136,29 @@ function MainApp() {
   );
 }
 
+function AppRoot() {
+  const { isRegistered, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-950 text-white">
+        <div className="w-10 h-10 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mb-4" />
+        <p className="text-sm font-medium text-purple-200">Loading OmniLife Studio...</p>
+      </div>
+    );
+  }
+
+  if (!isRegistered) {
+    return <AuthView />;
+  }
+
+  return <MainApp />;
+}
+
 export function App() {
   return (
     <AuthProvider>
-      <MainApp />
+      <AppRoot />
     </AuthProvider>
   );
 }

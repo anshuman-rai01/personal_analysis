@@ -1,0 +1,281 @@
+import { DashboardMetrics, StudySession, FinanceTransaction, Habit, Goal } from '../../types/index.ts';
+import { DashboardData } from '../dashboard/DashboardContent.tsx';
+
+/**
+ * Static typed fixtures for the unauthenticated locked dashboard preview.
+ *
+ * Invariants guaranteed:
+ * - Plausible, illustrative sample numbers (not round, not constant, strictly non-negative).
+ * - No real names or emails.
+ * - Savings rate in [0, 100].
+ * - Synergy index in [0, 100].
+ * - All study session durations > 0 and focus scores in [1, 10].
+ * - Zero protected API dependencies.
+ */
+export const PREVIEW_METRICS: DashboardMetrics = {
+  study: {
+    totalHours: 42.5,
+    sessionsCount: 28,
+    avgFocus: 8.4,
+  },
+  finance: {
+    totalIncome: 125000,
+    totalExpenses: 74300,
+    totalInvested: 22000,
+    netSavings: 50700,
+    savingsRate: 40.56,
+  },
+  habits: {
+    activeCount: 6,
+    maxStreak: 18,
+  },
+  goals: {
+    total: 5,
+    inProgress: 3,
+    achieved: 2,
+  },
+  synergyIndex: 87,
+};
+
+export const PREVIEW_RECENT_STUDY: StudySession[] = [
+  {
+    id: 101,
+    userId: 'sample_preview_user',
+    subject: 'Data Science',
+    topic: 'Feature Engineering & Ensembles',
+    durationMinutes: 45,
+    technique: 'Pomodoro',
+    focusScore: 8,
+    energyScore: 7,
+    date: '2026-10-08',
+  },
+  {
+    id: 102,
+    userId: 'sample_preview_user',
+    subject: 'Algorithms',
+    topic: 'Graph Traversal & Dijkstra',
+    durationMinutes: 90,
+    technique: 'Deep Work',
+    focusScore: 9,
+    energyScore: 8,
+    date: '2026-10-09',
+  },
+  {
+    id: 103,
+    userId: 'sample_preview_user',
+    subject: 'System Design',
+    topic: 'Event Sourcing & CQRS',
+    durationMinutes: 60,
+    technique: 'Active Recall',
+    focusScore: 8,
+    energyScore: 8,
+    date: '2026-10-10',
+  },
+  {
+    id: 104,
+    userId: 'sample_preview_user',
+    subject: 'Microservices',
+    topic: 'Service Mesh & Resiliency',
+    durationMinutes: 110,
+    technique: 'Deep Work',
+    focusScore: 9,
+    energyScore: 9,
+    date: '2026-10-11',
+  },
+  {
+    id: 105,
+    userId: 'sample_preview_user',
+    subject: 'ML Theory',
+    topic: 'Regularization & Gradient Descent',
+    durationMinutes: 50,
+    technique: 'Feynman Technique',
+    focusScore: 7,
+    energyScore: 7,
+    date: '2026-10-12',
+  },
+  {
+    id: 106,
+    userId: 'sample_preview_user',
+    subject: 'Database Tuning',
+    topic: 'B-Tree Indexing & Explain Plans',
+    durationMinutes: 75,
+    technique: 'Active Recall',
+    focusScore: 9,
+    energyScore: 8,
+    date: '2026-10-13',
+  },
+  {
+    id: 107,
+    userId: 'sample_preview_user',
+    subject: 'Cloud Infra',
+    topic: 'Terraform State & CI Pipelines',
+    durationMinutes: 80,
+    technique: 'Deep Work',
+    focusScore: 9,
+    energyScore: 8,
+    date: '2026-10-14',
+  },
+];
+
+export const PREVIEW_RECENT_FINANCE: FinanceTransaction[] = [
+  {
+    id: 201,
+    userId: 'sample_preview_user',
+    title: 'Monthly Income Inflow',
+    type: 'income',
+    category: 'Earnings',
+    amount: 125000,
+    paymentMethod: 'Bank Transfer',
+    date: '2026-10-01',
+  },
+  {
+    id: 202,
+    userId: 'sample_preview_user',
+    title: 'Cloud Infrastructure & Dev Tools',
+    type: 'expense',
+    category: 'Work Tech',
+    amount: 14200,
+    paymentMethod: 'Corporate Card',
+    date: '2026-10-04',
+  },
+  {
+    id: 203,
+    userId: 'sample_preview_user',
+    title: 'Diversified Index Fund Allocation',
+    type: 'investment',
+    category: 'Investments',
+    amount: 22000,
+    paymentMethod: 'SIP Auto-Debit',
+    date: '2026-10-06',
+  },
+  {
+    id: 204,
+    userId: 'sample_preview_user',
+    title: 'Engineering Books & Tech Courses',
+    type: 'expense',
+    category: 'Learning',
+    amount: 6800,
+    paymentMethod: 'UPI',
+    date: '2026-10-09',
+  },
+  {
+    id: 205,
+    userId: 'sample_preview_user',
+    title: 'Workspace Ergonomics & Health',
+    type: 'expense',
+    category: 'Wellness',
+    amount: 18500,
+    paymentMethod: 'Debit Card',
+    date: '2026-10-12',
+  },
+];
+
+export const PREVIEW_HABITS: Habit[] = [
+  {
+    id: 301,
+    userId: 'sample_preview_user',
+    name: 'Morning Deep Work',
+    category: 'Productivity',
+    frequency: 'daily',
+    targetDaysPerWeek: 6,
+    currentStreak: 18,
+    longestStreak: 24,
+    color: '#8b5cf6',
+    icon: 'Brain',
+  },
+  {
+    id: 302,
+    userId: 'sample_preview_user',
+    name: 'Fitness & Aerobics',
+    category: 'Health',
+    frequency: 'daily',
+    targetDaysPerWeek: 5,
+    currentStreak: 14,
+    longestStreak: 21,
+    color: '#ec4899',
+    icon: 'Activity',
+  },
+  {
+    id: 303,
+    userId: 'sample_preview_user',
+    name: 'Technical Reading',
+    category: 'Learning',
+    frequency: 'daily',
+    targetDaysPerWeek: 6,
+    currentStreak: 11,
+    longestStreak: 19,
+    color: '#06b6d4',
+    icon: 'BookOpen',
+  },
+  {
+    id: 304,
+    userId: 'sample_preview_user',
+    name: 'Evening Reflection & Journaling',
+    category: 'Mindset',
+    frequency: 'daily',
+    targetDaysPerWeek: 7,
+    currentStreak: 9,
+    longestStreak: 15,
+    color: '#10b981',
+    icon: 'Sparkles',
+  },
+];
+
+export const PREVIEW_GOALS: Goal[] = [
+  {
+    id: 401,
+    userId: 'sample_preview_user',
+    title: 'Complete Distributed Systems Mastery',
+    module: 'study',
+    targetValue: 10,
+    currentValue: 8,
+    unit: 'modules',
+    deadline: '2026-12-15',
+    milestones: 'Architecture, Replication, Consensus',
+    status: 'in_progress',
+  },
+  {
+    id: 402,
+    userId: 'sample_preview_user',
+    title: 'Emergency Fund 6-Month Reserve',
+    module: 'finance',
+    targetValue: 300000,
+    currentValue: 250000,
+    unit: '₹',
+    deadline: '2026-12-31',
+    milestones: 'Phase 1, Phase 2, Final Milestone',
+    status: 'in_progress',
+  },
+  {
+    id: 403,
+    userId: 'sample_preview_user',
+    title: 'Publish 12 Architecture Deep Dives',
+    module: 'career',
+    targetValue: 12,
+    currentValue: 7,
+    unit: 'articles',
+    deadline: '2026-11-30',
+    milestones: 'Drafts, Code Samples, Peer Review',
+    status: 'in_progress',
+  },
+  {
+    id: 404,
+    userId: 'sample_preview_user',
+    title: 'Certify Cloud Architecture Specialist',
+    module: 'study',
+    targetValue: 1,
+    currentValue: 1,
+    unit: 'cert',
+    deadline: '2026-09-30',
+    milestones: 'Exam Prep, Practice Tests, Exam Passed',
+    status: 'achieved',
+  },
+];
+
+export const PREVIEW_DASHBOARD_DATA: DashboardData = {
+  metrics: PREVIEW_METRICS,
+  recentStudy: PREVIEW_RECENT_STUDY,
+  recentFinance: PREVIEW_RECENT_FINANCE,
+  habitsList: PREVIEW_HABITS,
+  goalsList: PREVIEW_GOALS,
+};

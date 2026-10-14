@@ -31,6 +31,14 @@ function sleep(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+function isQuotaExhausted(err: unknown): boolean {
+  if (err instanceof Error) {
+    const msg = err.message.toLowerCase();
+    return msg.includes('quota exceeded') || msg.includes('resource_exhausted');
+  }
+  return false;
+}
+
 function isRetryable(err: unknown): boolean {
   if (err instanceof ApiError) {
     return err.status === 429 || err.status === 503;
@@ -104,9 +112,17 @@ export function createGeminiClient(apiKey?: string): LLMClient {
       const isInitialRound = !params.rawContents || params.rawContents.length <= params.messages.length;
 
       // Model candidate cascade (only applicable at round 0 before model turns)
-      const primaryModel = params.model || process.env.GEMINI_MODEL || 'gemini-3.6-flash';
+      const primaryModel = params.model || process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite';
       const candidateModels = isInitialRound
-        ? [primaryModel, 'gemini-3.5-flash', 'gemini-3.6-flash', 'gemini-flash-latest'].filter((m, i, arr) => arr.indexOf(m) === i)
+        ? [
+            primaryModel,
+            'gemini-3.5-flash-lite',
+            'gemini-flash-lite-latest',
+            'gemini-3.8-flash',
+            'gemini-3.6-flash',
+            'gemini-3.5-flash',
+            'gemini-flash-latest',
+          ].filter((m, i, arr) => arr.indexOf(m) === i)
         : [primaryModel];
 
       let lastError: unknown = null;
@@ -170,16 +186,22 @@ export function createGeminiClient(apiKey?: string): LLMClient {
           } catch (err: any) {
             lastError = err;
 
-            // Log failures strictly with error class name and status only (no prompt or text)
+            // Log failures strictly with error class name, status, and concise reason (no prompt or text)
             const errName = err?.constructor?.name || 'Error';
             const status = err?.status || (err instanceof ApiError ? err.status : undefined);
-            console.error(`[Assistant LLM] Generation attempt failed: model=${modelToTry} class=${errName} status=${status ?? 'none'}`);
+            const errReason = err?.message ? ` message=${err.message.substring(0, 100).replace(/[\r\n]+/g, ' ')}` : '';
+            console.error(`[Assistant LLM] Generation attempt failed: model=${modelToTry} class=${errName} status=${status ?? 'none'}${errReason}`);
 
             if (err?.name === 'AbortError' || err?.message?.includes('aborted')) {
               if (isLastCandidate) {
                 throw new AssistantLLMError('timeout', 'LLM request timed out', 408);
               }
               // If not the last candidate, break out to try the next model candidate
+              break;
+            }
+
+            // If quota is exhausted for this model (e.g. daily free limit), immediately cascade without delay
+            if (isQuotaExhausted(err)) {
               break;
             }
 

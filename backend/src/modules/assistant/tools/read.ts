@@ -26,6 +26,7 @@ import {
   FinanceTx,
   ForecastSeriesType,
 } from '../forecast.ts';
+import { FORECAST_MIN_ACTIVE_DAYS } from '../../forecasting/thresholds.ts';
 
 // Repository interface for database dependency injection / unit testing
 export interface AssistantRepository {
@@ -709,7 +710,7 @@ export const getForecastTool: ToolDefinition = {
       if (forecast.status === 'insufficient_data') {
         const notice = createNoticeBlock(
           'fc_notice_' + Date.now(),
-          forecast.note || 'Insufficient financial history to compute reliable forecasts (at least 14 active days required).',
+          forecast.note || `Insufficient financial history to compute reliable forecasts (at least ${FORECAST_MIN_ACTIVE_DAYS} active days required).`,
           'warn'
         );
         return {
@@ -859,7 +860,7 @@ export const getForecastTool: ToolDefinition = {
     if (forecast.status === 'insufficient_data') {
       const notice = createNoticeBlock(
         'fc_insuf_' + Date.now(),
-        `Insufficient transaction history for ${series} (${forecast.activeDays} active days logged; at least 14 required for statistical estimation).`,
+        `Insufficient transaction history for ${series} (${forecast.activeDays} active days logged; at least ${FORECAST_MIN_ACTIVE_DAYS} required for statistical estimation).`,
         'warn'
       );
       return {
@@ -867,7 +868,7 @@ export const getForecastTool: ToolDefinition = {
           status: 'insufficient_data',
           series,
           activeDays: forecast.activeDays,
-          requiredDays: 14,
+          requiredDays: FORECAST_MIN_ACTIVE_DAYS,
         },
         blocks: [notice],
       };

@@ -4,6 +4,11 @@
 
 import { parseDate, addDays, formatDate } from './dates.ts';
 import { ChartBlock, MetricsBlock, NoticeBlock, Block } from './types.ts';
+import {
+  FORECAST_MIN_ACTIVE_DAYS,
+  FORECAST_RELIABLE_ACTIVE_DAYS,
+  evaluateActiveDays,
+} from '../forecasting/thresholds.ts';
 
 export type ForecastSeriesType = 'expenses' | 'income' | 'savings' | 'finances';
 export type ReliabilityTier = 'insufficient_data' | 'low_confidence' | 'reliable';
@@ -62,18 +67,20 @@ export function computeSingleForecast(
   const distinctDays = new Set(relevant.map(t => t.date));
   const activeDays = distinctDays.size;
 
-  if (activeDays < 14) {
+  const evaluation = evaluateActiveDays(activeDays);
+  if (!evaluation.allowed) {
     return {
       status: 'insufficient_data',
       series: seriesType,
       reliability: 'insufficient_data',
       activeDays,
-      requiredDays: 14,
+      requiredDays: FORECAST_MIN_ACTIVE_DAYS,
       horizonDays,
     };
   }
 
-  const reliability: ReliabilityTier = activeDays >= 28 ? 'reliable' : 'low_confidence';
+  const reliability: ReliabilityTier =
+    evaluation.status === 'reliable' ? 'reliable' : 'low_confidence';
 
   // Find first transaction date
   let minDateStr = clientDateStr;
@@ -190,7 +197,7 @@ export function computeFinancesForecast(
       series: 'finances',
       expenseResult,
       incomeResult,
-      note: `Insufficient transaction history for both expenses (${expenseResult.activeDays}/14 active days) and income (${incomeResult.activeDays}/14 active days).`,
+      note: `Insufficient transaction history for both expenses (${expenseResult.activeDays}/${FORECAST_MIN_ACTIVE_DAYS} active days) and income (${incomeResult.activeDays}/${FORECAST_MIN_ACTIVE_DAYS} active days).`,
     };
   }
 
@@ -219,7 +226,7 @@ export function computeFinancesForecast(
       series: 'finances',
       reliability: expenseResult.reliability,
       expenseResult,
-      note: `Forecast available for expenses only (${expenseResult.activeDays} active days). Income has insufficient history (${incomeResult.activeDays}/14 active days).`,
+      note: `Forecast available for expenses only (${expenseResult.activeDays} active days). Income has insufficient history (${incomeResult.activeDays}/${FORECAST_MIN_ACTIVE_DAYS} active days).`,
     };
   }
 
@@ -228,6 +235,6 @@ export function computeFinancesForecast(
     series: 'finances',
     reliability: incomeResult.reliability,
     incomeResult,
-    note: `Forecast available for income only (${incomeResult.activeDays} active days). Expenses has insufficient history (${expenseResult.activeDays}/14 active days).`,
+    note: `Forecast available for income only (${incomeResult.activeDays} active days). Expenses has insufficient history (${expenseResult.activeDays}/${FORECAST_MIN_ACTIVE_DAYS} active days).`,
   };
 }

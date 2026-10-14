@@ -12,6 +12,7 @@ import {
   LogOut,
   Database,
   Sparkles,
+  Lock,
 } from 'lucide-react';
 import { useAuth } from '../features/auth/AuthContext.tsx';
 
@@ -30,6 +31,10 @@ interface NavbarProps {
   setActiveTab: (tab: ActiveTab) => void;
   onOpenQuickLog: () => void;
   onOpenAssistant?: () => void;
+  locked?: boolean;
+  onLockedTabClick?: (tab: ActiveTab) => void;
+  onSignInClick?: () => void;
+  onRegisterClick?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -37,10 +42,18 @@ export const Navbar: React.FC<NavbarProps> = ({
   setActiveTab,
   onOpenQuickLog,
   onOpenAssistant,
+  locked = false,
+  onLockedTabClick,
+  onSignInClick,
+  onRegisterClick,
 }) => {
   const { user, logout } = useAuth();
 
   const handleTabClick = (tabId: ActiveTab) => {
+    if (locked) {
+      onLockedTabClick?.(tabId);
+      return;
+    }
     setActiveTab(tabId);
     if (tabId === 'assistant' && onOpenAssistant) {
       onOpenAssistant();
@@ -83,42 +96,63 @@ export const Navbar: React.FC<NavbarProps> = ({
             </div>
           </div>
 
-          {/* Quick Action & User Profile controls */}
+          {/* Quick Action & User Profile controls (or Sign In / Register buttons in locked mode) */}
           <div className="flex items-center gap-2 sm:gap-3">
-            <button
-              onClick={onOpenQuickLog}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 text-xs font-semibold rounded-lg bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-700 hover:to-pink-600 text-white shadow-md shadow-pink-500/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Quick Log</span>
-            </button>
-
-            {user && (
-              <div className="flex items-center gap-2 bg-purple-50/80 border border-purple-200/80 rounded-lg p-1 pr-2">
-                <div className="flex items-center gap-2">
-                  {user.photoURL ? (
-                    <img
-                      src={user.photoURL}
-                      alt={user.displayName || 'User'}
-                      className="w-7 h-7 rounded-full border border-purple-300"
-                    />
-                  ) : (
-                    <div className="w-7 h-7 rounded-full bg-purple-600 flex items-center justify-center text-xs font-bold text-white">
-                      {user.email ? user.email[0].toUpperCase() : 'U'}
-                    </div>
-                  )}
-                  <span className="text-xs font-semibold text-purple-900 hidden md:inline truncate max-w-[120px]">
-                    {user.displayName || user.email?.split('@')[0]}
-                  </span>
-                </div>
+            {locked ? (
+              <div className="flex items-center gap-2 sm:gap-2.5">
                 <button
-                  onClick={logout}
-                  title="Sign out"
-                  className="p-1 text-slate-400 hover:text-rose-500 transition-colors ml-1"
+                  type="button"
+                  onClick={onSignInClick}
+                  className="px-3.5 py-1.5 sm:px-4 sm:py-2 text-xs font-bold rounded-xl border border-purple-200 bg-white hover:bg-purple-50 text-purple-900 shadow-xs transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
                 >
-                  <LogOut className="w-3.5 h-3.5" />
+                  Sign In
+                </button>
+                <button
+                  type="button"
+                  onClick={onRegisterClick}
+                  className="px-3.5 py-1.5 sm:px-4 sm:py-2 text-xs font-bold rounded-xl bg-gradient-to-r from-purple-600 via-fuchsia-600 to-pink-500 hover:from-purple-700 hover:to-pink-600 text-white shadow-md shadow-pink-500/20 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+                >
+                  Register
                 </button>
               </div>
+            ) : (
+              <>
+                <button
+                  onClick={onOpenQuickLog}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 text-xs font-semibold rounded-lg bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-700 hover:to-pink-600 text-white shadow-md shadow-pink-500/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Quick Log</span>
+                </button>
+
+                {user && (
+                  <div className="flex items-center gap-2 bg-purple-50/80 border border-purple-200/80 rounded-lg p-1 pr-2">
+                    <div className="flex items-center gap-2">
+                      {user.photoURL ? (
+                        <img
+                          src={user.photoURL}
+                          alt={user.displayName || 'User'}
+                          className="w-7 h-7 rounded-full border border-purple-300"
+                        />
+                      ) : (
+                        <div className="w-7 h-7 rounded-full bg-purple-600 flex items-center justify-center text-xs font-bold text-white">
+                          {user.email ? user.email[0].toUpperCase() : 'U'}
+                        </div>
+                      )}
+                      <span className="text-xs font-semibold text-purple-900 hidden md:inline truncate max-w-[120px]">
+                        {user.displayName || user.email?.split('@')[0]}
+                      </span>
+                    </div>
+                    <button
+                      onClick={logout}
+                      title="Sign out"
+                      className="p-1 text-slate-400 hover:text-rose-500 transition-colors ml-1"
+                    >
+                      <LogOut className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>
@@ -130,8 +164,10 @@ export const Navbar: React.FC<NavbarProps> = ({
             return (
               <button
                 key={item.id}
+                type="button"
                 onClick={() => handleTabClick(item.id)}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all duration-150 relative ${
+                title={locked ? 'Sign in to unlock' : undefined}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all duration-150 relative cursor-pointer ${
                   isActive
                     ? 'bg-gradient-to-r from-purple-700 to-fuchsia-600 text-white shadow-sm shadow-purple-500/20'
                     : 'text-purple-900/80 hover:text-purple-950 hover:bg-purple-50/80'
@@ -149,6 +185,9 @@ export const Navbar: React.FC<NavbarProps> = ({
                   >
                     {item.badge}
                   </span>
+                )}
+                {locked && (
+                  <Lock className={`w-3 h-3 ml-0.5 ${isActive ? 'text-pink-200' : 'text-purple-400/80'}`} />
                 )}
               </button>
             );

@@ -115,6 +115,8 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
         <div className="mt-6 pt-6 border-t border-white/15 grid grid-cols-2 sm:grid-cols-4 gap-3">
           <button
             type="button"
+            data-auth-reason="Sign in to use Forecasting (ML)"
+            data-intended-tab="forecasting"
             onClick={() => onTabClick?.('forecasting')}
             className="flex items-center justify-between p-3 rounded-xl bg-white/10 hover:bg-white/20 border border-white/15 text-left transition-all group backdrop-blur-sm cursor-pointer"
           >
@@ -127,6 +129,8 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
 
           <button
             type="button"
+            data-auth-reason="Sign in to use What-If Simulation"
+            data-intended-tab="simulation"
             onClick={() => onTabClick?.('simulation')}
             className="flex items-center justify-between p-3 rounded-xl bg-white/10 hover:bg-white/20 border border-white/15 text-left transition-all group backdrop-blur-sm cursor-pointer"
           >
@@ -139,6 +143,8 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
 
           <button
             type="button"
+            data-auth-reason="Sign in to use AI Assistant"
+            data-intended-tab="assistant"
             onClick={() => onOpenAssistant?.()}
             className="flex items-center justify-between p-3 rounded-xl bg-white/10 hover:bg-white/20 border border-white/15 text-left transition-all group backdrop-blur-sm cursor-pointer"
           >
@@ -151,6 +157,7 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
 
           <button
             type="button"
+            data-auth-reason="Sign in to log new activity"
             onClick={() => onOpenQuickLog?.()}
             className="flex items-center justify-between p-3 rounded-xl bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white font-bold text-left transition-all group shadow-md cursor-pointer"
           >
@@ -175,6 +182,8 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Study KPI */}
             <div
+              data-auth-reason="Sign in to access Study & Learning"
+              data-intended-tab="study"
               onClick={() => onTabClick?.('study')}
               className="cursor-pointer bg-white hover:bg-purple-50/50 border border-purple-100 hover:border-purple-300 rounded-2xl p-5 transition-all shadow-xs group"
             >
@@ -202,6 +211,8 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
 
             {/* Finance (Money) KPI */}
             <div
+              data-auth-reason="Sign in to access Finance & Money"
+              data-intended-tab="finance"
               onClick={() => onTabClick?.('finance')}
               className="cursor-pointer bg-white hover:bg-pink-50/50 border border-purple-100 hover:border-pink-300 rounded-2xl p-5 transition-all shadow-xs group"
             >
@@ -229,6 +240,8 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
 
             {/* Habits KPI */}
             <div
+              data-auth-reason="Sign in to access Habits & Streaks"
+              data-intended-tab="habits"
               onClick={() => onTabClick?.('habits')}
               className="cursor-pointer bg-white hover:bg-fuchsia-50/50 border border-purple-100 hover:border-fuchsia-300 rounded-2xl p-5 transition-all shadow-xs group"
             >
@@ -254,6 +267,8 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
 
             {/* Goals KPI */}
             <div
+              data-auth-reason="Sign in to access Target Goals"
+              data-intended-tab="goals"
               onClick={() => onTabClick?.('goals')}
               className="cursor-pointer bg-white hover:bg-purple-50/50 border border-purple-100 hover:border-purple-300 rounded-2xl p-5 transition-all shadow-xs group"
             >
@@ -283,7 +298,11 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
           {/* DASHBOARD GRAPHS & CHARTS SECTION */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Chart 1: Study Duration & Focus Trend Chart */}
-            <div className="bg-white border border-purple-100 rounded-2xl p-5 sm:p-6 shadow-xs">
+            <div
+              data-auth-reason="Sign in to view Study Log"
+              data-intended-tab="study"
+              className="bg-white border border-purple-100 rounded-2xl p-5 sm:p-6 shadow-xs"
+            >
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <h3 className="text-sm font-bold text-purple-950 flex items-center gap-2">
@@ -295,6 +314,8 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
                 </div>
                 <button
                   type="button"
+                  data-auth-reason="Sign in to view Study Log"
+                  data-intended-tab="study"
                   onClick={() => onTabClick?.('study')}
                   className="text-xs font-semibold text-purple-600 hover:text-pink-600 transition-colors cursor-pointer"
                 >
@@ -396,7 +417,11 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
             </div>
 
             {/* Chart 2: Money Flow & Net Savings Breakdown */}
-            <div className="bg-white border border-purple-100 rounded-2xl p-5 sm:p-6 shadow-xs">
+            <div
+              data-auth-reason="Sign in to view Ledger"
+              data-intended-tab="finance"
+              className="bg-white border border-purple-100 rounded-2xl p-5 sm:p-6 shadow-xs"
+            >
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <h3 className="text-sm font-bold text-purple-950 flex items-center gap-2">
@@ -408,6 +433,8 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
                 </div>
                 <button
                   type="button"
+                  data-auth-reason="Sign in to view Ledger"
+                  data-intended-tab="finance"
                   onClick={() => onTabClick?.('finance')}
                   className="text-xs font-semibold text-pink-600 hover:text-purple-700 transition-colors cursor-pointer"
                 >
@@ -489,7 +516,11 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
           {/* Chart 3 & 4: Habit Consistency & Goal Milestones */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Habit Completion Progress */}
-            <div className="bg-white border border-purple-100 rounded-2xl p-5 sm:p-6 shadow-xs">
+            <div
+              data-auth-reason="Sign in to open Habits"
+              data-intended-tab="habits"
+              className="bg-white border border-purple-100 rounded-2xl p-5 sm:p-6 shadow-xs"
+            >
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <h3 className="text-sm font-bold text-purple-950 flex items-center gap-2">
@@ -501,6 +532,8 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
                 </div>
                 <button
                   type="button"
+                  data-auth-reason="Sign in to open Habits"
+                  data-intended-tab="habits"
                   onClick={() => onTabClick?.('habits')}
                   className="text-xs font-semibold text-fuchsia-600 hover:text-purple-700 transition-colors cursor-pointer"
                 >
@@ -541,7 +574,11 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
             </div>
 
             {/* Goals Roadmap Progress */}
-            <div className="bg-white border border-purple-100 rounded-2xl p-5 sm:p-6 shadow-xs">
+            <div
+              data-auth-reason="Sign in to manage Goals"
+              data-intended-tab="goals"
+              className="bg-white border border-purple-100 rounded-2xl p-5 sm:p-6 shadow-xs"
+            >
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <h3 className="text-sm font-bold text-purple-950 flex items-center gap-2">
@@ -553,6 +590,8 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
                 </div>
                 <button
                   type="button"
+                  data-auth-reason="Sign in to manage Goals"
+                  data-intended-tab="goals"
                   onClick={() => onTabClick?.('goals')}
                   className="text-xs font-semibold text-pink-600 hover:text-purple-700 transition-colors cursor-pointer"
                 >

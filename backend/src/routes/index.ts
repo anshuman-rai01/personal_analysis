@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { healthRouter } from '../modules/health/health.routes.ts';
-import { userRouter } from '../modules/users/users.routes.ts';
+import { authRouter } from '../modules/auth/auth.routes.ts';
 import { studyRouter } from '../modules/study/study.routes.ts';
 import { financeRouter } from '../modules/finance/finance.routes.ts';
 import { habitsRouter } from '../modules/habits/habits.routes.ts';
@@ -15,7 +15,7 @@ export const apiRouter = Router();
 
 // Mount modular sub-routers
 apiRouter.use(healthRouter);
-apiRouter.use(userRouter);
+apiRouter.use(authRouter);
 apiRouter.use(studyRouter);
 apiRouter.use(financeRouter);
 apiRouter.use(habitsRouter);

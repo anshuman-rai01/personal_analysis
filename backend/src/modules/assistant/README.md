@@ -34,7 +34,6 @@ The OmniLife Assistant replaces the legacy prompt-stuffed chatbot with a **RiskL
         │     └── Queries scoped strictly to req.user!.uid
         │
         └── Write Tools (propose_entry, propose_delete)
-              ├── Checks authenticated || ASSISTANT_ALLOW_GUEST_WRITES
               └── ZERO Database Writes (generates structured confirmation cards)
         │
         ▼
@@ -197,12 +196,7 @@ case 'kpi_gauge':
 
 ---
 
-## 6. Security & Guest-Write Policy
+## 6. Security Policy
 
-### Request Identification
-All database queries and mutations derive user identity solely from `req.user!.uid` provided by `requireAuth`. The model has no access to user IDs and cannot pass IDs to tools.
-
-### Guest-Write Risk Notice (`ASSISTANT_ALLOW_GUEST_WRITES`)
-- In OmniLife Studio, unauthenticated requests fall back to an unverified guest identity (`x-guest-uid` header or `default_user_101`).
-- By default, **guest writes and deletions are prohibited** (`ASSISTANT_ALLOW_GUEST_WRITES=false`). When unauthenticated guests attempt to propose changes, the assistant prompts them to sign in.
-- Setting `ASSISTANT_ALLOW_GUEST_WRITES=true` allows demo or guest users to prepare writes and deletions. **Warning**: On untrusted networks, anyone providing the same guest ID can modify the associated records. This flag should only be enabled on trusted demonstration workstations.
+### Request Identification & Authentication
+All assistant endpoints require valid Firebase authentication and an existing user registration through `requireAuth`. All database queries derive user identity solely from `req.user!.uid`. The model has no access to user IDs and cannot pass IDs to tools. Guest access and unauthenticated fallbacks are completely prohibited.

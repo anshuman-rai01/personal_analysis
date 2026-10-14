@@ -43,9 +43,7 @@ describe('Write Tools (propose_entry and propose_delete)', () => {
 
   const baseContext: ToolContext = {
     uid: 'test_user',
-    authenticated: true,
     clientDate: '2026-10-10',
-    allowGuestWrites: false,
   };
 
   beforeEach(() => {
@@ -216,33 +214,6 @@ describe('Write Tools (propose_entry and propose_delete)', () => {
       );
       assert.equal(resShort.data.status, 'needs_more_info');
     });
-
-    it('enforces guest-write gating on propose_entry', async () => {
-      const guestContext: ToolContext = {
-        uid: 'guest_user_1',
-        authenticated: false,
-        clientDate: '2026-10-10',
-        allowGuestWrites: false,
-      };
-
-      const resBlocked = await proposeEntryTool.execute(
-        { module: 'finance', title: 'Coffee', amount: 150, type: 'expense' },
-        guestContext
-      );
-      assert.equal(resBlocked.data.status, 'error');
-      assert.equal(resBlocked.data.error, 'sign_in_required');
-
-      // Allowed when allowGuestWrites is true
-      const allowedGuestContext: ToolContext = {
-        ...guestContext,
-        allowGuestWrites: true,
-      };
-      const resAllowed = await proposeEntryTool.execute(
-        { module: 'finance', title: 'Coffee', amount: 150, type: 'expense' },
-        allowedGuestContext
-      );
-      assert.equal(resAllowed.data.status, 'awaiting_confirmation');
-    });
   });
 
   describe('propose_delete verification and scoping', () => {
@@ -298,22 +269,6 @@ describe('Write Tools (propose_entry and propose_delete)', () => {
       if (block.type === 'confirm_delete') {
         assert.ok(block.warning.includes('check-in history is deleted too'));
       }
-    });
-
-    it('enforces guest-write gating on propose_delete', async () => {
-      const guestContext: ToolContext = {
-        uid: 'guest_user_1',
-        authenticated: false,
-        clientDate: '2026-10-10',
-        allowGuestWrites: false,
-      };
-
-      const res = await proposeDeleteTool.execute(
-        { module: 'finance', entryIds: [101] },
-        guestContext
-      );
-      assert.equal(res.data.status, 'error');
-      assert.equal(res.data.error, 'sign_in_required');
     });
   });
 

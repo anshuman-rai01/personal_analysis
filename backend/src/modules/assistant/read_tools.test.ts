@@ -54,7 +54,6 @@ describe('Read Tools (read.ts)', () => {
   let stubRepo: StubRepository;
   const context: ToolContext = {
     uid: 'user_123',
-    authenticated: true,
     clientDate: '2026-10-10',
   };
 

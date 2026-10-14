@@ -81,17 +81,6 @@ export const proposeEntryTool: ToolDefinition = {
     return { valid: true, sanitized: args };
   },
   execute: async (args: any, context: ToolContext): Promise<ToolResult> => {
-    // Guest-write gating
-    if (!context.authenticated && !context.allowGuestWrites) {
-      return {
-        data: {
-          status: 'error',
-          error: 'sign_in_required',
-          message: 'User authentication is required to prepare records for saving.',
-        },
-      };
-    }
-
     const module = args.module as AssistantModule;
     const missing: string[] = [];
 
@@ -391,17 +380,6 @@ export const proposeDeleteTool: ToolDefinition = {
     };
   },
   execute: async (args: any, context: ToolContext): Promise<ToolResult> => {
-    // Guest-write gating
-    if (!context.authenticated && !context.allowGuestWrites) {
-      return {
-        data: {
-          status: 'error',
-          error: 'sign_in_required',
-          message: 'User authentication is required to prepare records for deletion.',
-        },
-      };
-    }
-
     const { module, entryIds } = args as { module: AssistantModule; entryIds: number[] };
 
     // Fetch user's existing records from database

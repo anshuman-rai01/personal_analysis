@@ -107,9 +107,7 @@ export type Block =
 
 export interface ToolContext {
   uid: string;
-  authenticated: boolean;
   clientDate: string;
-  allowGuestWrites?: boolean;
 }
 
 export interface ToolResult {

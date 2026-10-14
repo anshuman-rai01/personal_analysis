@@ -11,8 +11,7 @@ export const assistantRouter = Router();
 
 const handleChat = async (req: AuthRequest, res: any) => {
   try {
-    const uid = req.user?.uid || 'guest';
-    const authenticated = req.user?.authenticated ?? false;
+    const uid = req.user!.uid;
 
     // Rate limiting check (sliding window per user)
     const rateCheck = checkRateLimit(uid);
@@ -31,16 +30,12 @@ const handleChat = async (req: AuthRequest, res: any) => {
       return res.status(400).json({ error: validation.error || 'Invalid request body.' });
     }
 
-    const allowGuestWrites = process.env.ASSISTANT_ALLOW_GUEST_WRITES === 'true';
-
     const result = await runAgent({
       messages: validation.messages,
       clientDate: validation.clientDate,
       context: {
         uid,
-        authenticated,
         clientDate: validation.clientDate,
-        allowGuestWrites,
       },
       llm: createGeminiClient(),
       tools: TOOL_REGISTRY,

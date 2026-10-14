@@ -13,10 +13,25 @@ import {
   ArrowRight,
   ShieldCheck,
   Check,
-  Award
+  Award,
+  Lock,
 } from 'lucide-react';
 import { SimulationResult, SavedScenario } from '../../types/index.ts';
 import { authedFetch } from '../../services/apiClient.ts';
+import { useForecastReadiness } from '../forecasting/useForecastReadiness.ts';
+import { ReadinessPanel } from '../forecasting/ReadinessPanel.tsx';
+
+const scenarioToModuleMap: Record<'study_career' | 'wealth_accumulation' | 'lifestyle_habits', 'study' | 'finance' | 'habits'> = {
+  study_career: 'study',
+  wealth_accumulation: 'finance',
+  lifestyle_habits: 'habits',
+};
+
+const moduleToScenarioMap: Record<'study' | 'finance' | 'habits', 'study_career' | 'wealth_accumulation' | 'lifestyle_habits'> = {
+  study: 'study_career',
+  finance: 'wealth_accumulation',
+  habits: 'lifestyle_habits',
+};
 
 export const SimulationView: React.FC = () => {
   const [scenarioType, setScenarioType] = useState<'study_career' | 'wealth_accumulation' | 'lifestyle_habits'>('study_career');
@@ -25,6 +40,11 @@ export const SimulationView: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [scenarioName, setScenarioName] = useState('');
   const [saveSuccess, setSaveSuccess] = useState(false);
+
+  const { readiness, loading: readinessLoading, refresh: refreshReadiness } = useForecastReadiness();
+  const currentModule = scenarioToModuleMap[scenarioType];
+  const moduleReadiness = readiness?.modules[currentModule];
+  const isLocked = !moduleReadiness || !moduleReadiness.isUnlocked;
 
   // Sliders for Study & Career
   const [studyHours, setStudyHours] = useState(5.0);
@@ -45,6 +65,11 @@ export const SimulationView: React.FC = () => {
   const [screenTimeLimit, setScreenTimeLimit] = useState(3.0);
 
   const executeSimulation = async () => {
+    if (isLocked) {
+      setSimulationResult(null);
+      return;
+    }
+
     try {
       let params = {};
       if (scenarioType === 'study_career') {
@@ -78,6 +103,9 @@ export const SimulationView: React.FC = () => {
       if (res.ok) {
         const data = await res.json();
         setSimulationResult(data);
+      } else if (res.status === 422) {
+        setSimulationResult(null);
+        refreshReadiness();
       }
     } catch (e) {
       console.error('Failed to run simulation:', e);
@@ -96,9 +124,17 @@ export const SimulationView: React.FC = () => {
   };
 
   useEffect(() => {
-    executeSimulation();
     fetchSavedScenarios();
+  }, []);
+
+  useEffect(() => {
+    if (!isLocked) {
+      executeSimulation();
+    } else {
+      setSimulationResult(null);
+    }
   }, [
+    isLocked,
     scenarioType,
     studyHours,
     deepWorkRatio,
@@ -215,33 +251,42 @@ export const SimulationView: React.FC = () => {
         <div className="inline-flex rounded-xl bg-white p-1 border border-purple-200 shadow-xs">
           <button
             onClick={() => setScenarioType('study_career')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
               scenarioType === 'study_career'
                 ? 'bg-gradient-to-r from-purple-600 to-pink-500 text-white shadow-xs'
                 : 'text-slate-600 hover:text-purple-700'
             }`}
           >
-            Study &amp; Skill Mastery
+            {readiness && !readiness.modules.study.isUnlocked && (
+              <Lock className="w-3 h-3 text-amber-500" />
+            )}
+            <span>Study &amp; Skill Mastery</span>
           </button>
           <button
             onClick={() => setScenarioType('wealth_accumulation')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
               scenarioType === 'wealth_accumulation'
                 ? 'bg-gradient-to-r from-purple-600 to-pink-500 text-white shadow-xs'
                 : 'text-slate-600 hover:text-purple-700'
             }`}
           >
-            Money &amp; Wealth
+            {readiness && !readiness.modules.finance.isUnlocked && (
+              <Lock className="w-3 h-3 text-amber-500" />
+            )}
+            <span>Money &amp; Wealth</span>
           </button>
           <button
             onClick={() => setScenarioType('lifestyle_habits')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
               scenarioType === 'lifestyle_habits'
                 ? 'bg-gradient-to-r from-purple-600 to-pink-500 text-white shadow-xs'
                 : 'text-slate-600 hover:text-purple-700'
             }`}
           >
-            Habit Compounding
+            {readiness && !readiness.modules.habits.isUnlocked && (
+              <Lock className="w-3 h-3 text-amber-500" />
+            )}
+            <span>Habit Compounding</span>
           </button>
         </div>
       </div>
@@ -251,12 +296,33 @@ export const SimulationView: React.FC = () => {
         {/* Sliders Configuration Column */}
         <div className="lg:col-span-5 bg-white border border-purple-100 rounded-2xl p-5 sm:p-6 shadow-sm space-y-5">
           <div>
-            <h3 className="text-sm font-bold text-purple-950 flex items-center gap-2">
-              <Zap className="w-4 h-4 text-pink-600" />
-              <span>Interactive Decision Sliders</span>
-            </h3>
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-bold text-purple-950 flex items-center gap-2">
+                <Zap className="w-4 h-4 text-pink-600" />
+                <span>Interactive Decision Sliders</span>
+              </h3>
+              {isLocked && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800">
+                  <Lock className="w-3 h-3 text-amber-600" />
+                  Locked
+                </span>
+              )}
+            </div>
             <p className="text-xs text-slate-500">Tweak parameters to recalculate projections and recommendations.</p>
           </div>
+
+          {isLocked && (
+            <div className="p-3 bg-amber-50/80 border border-amber-200 rounded-xl flex items-start gap-2.5 text-xs text-amber-900">
+              <Lock className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+              <div>
+                <p className="font-semibold">Sliders locked (insufficient data)</p>
+                <p className="text-[11px] text-amber-700 mt-0.5">
+                  Requires 14 distinct active days in {scenarioType === 'study_career' ? 'Study' : scenarioType === 'wealth_accumulation' ? 'Finance' : 'Habits'}.
+                  Currently logged: {moduleReadiness?.distinctDays ?? 0} of 14 days ({moduleReadiness?.remaining ?? 14} remaining).
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* Scenario 1: Study & Career Sliders */}
           {scenarioType === 'study_career' && (
@@ -268,12 +334,13 @@ export const SimulationView: React.FC = () => {
                 </div>
                 <input
                   type="range"
+                  disabled={isLocked}
                   min="1"
                   max="10"
                   step="0.5"
                   value={studyHours}
                   onChange={(e) => setStudyHours(parseFloat(e.target.value))}
-                  className="w-full accent-purple-600"
+                  className={`w-full accent-purple-600 ${isLocked ? 'opacity-40 cursor-not-allowed' : ''}`}
                 />
                 <div className="flex justify-between text-[10px] text-slate-400 font-medium">
                   <span>1 hr (Low)</span>
@@ -289,12 +356,13 @@ export const SimulationView: React.FC = () => {
                 </div>
                 <input
                   type="range"
+                  disabled={isLocked}
                   min="0.2"
                   max="1.0"
                   step="0.05"
                   value={deepWorkRatio}
                   onChange={(e) => setDeepWorkRatio(parseFloat(e.target.value))}
-                  className="w-full accent-pink-500"
+                  className={`w-full accent-pink-500 ${isLocked ? 'opacity-40 cursor-not-allowed' : ''}`}
                 />
               </div>
 
@@ -305,12 +373,13 @@ export const SimulationView: React.FC = () => {
                 </div>
                 <input
                   type="range"
+                  disabled={isLocked}
                   min="4.5"
                   max="9.5"
                   step="0.5"
                   value={sleepHours}
                   onChange={(e) => setSleepHours(parseFloat(e.target.value))}
-                  className="w-full accent-purple-600"
+                  className={`w-full accent-purple-600 ${isLocked ? 'opacity-40 cursor-not-allowed' : ''}`}
                 />
               </div>
 
@@ -321,12 +390,13 @@ export const SimulationView: React.FC = () => {
                 </div>
                 <input
                   type="range"
+                  disabled={isLocked}
                   min="0"
                   max="15"
                   step="1"
                   value={distractions}
                   onChange={(e) => setDistractions(parseInt(e.target.value, 10))}
-                  className="w-full accent-rose-500"
+                  className={`w-full accent-rose-500 ${isLocked ? 'opacity-40 cursor-not-allowed' : ''}`}
                 />
               </div>
             </div>
@@ -342,12 +412,13 @@ export const SimulationView: React.FC = () => {
                 </div>
                 <input
                   type="range"
+                  disabled={isLocked}
                   min="5"
                   max="60"
                   step="2"
                   value={savingsRate}
                   onChange={(e) => setSavingsRate(parseFloat(e.target.value))}
-                  className="w-full accent-pink-500"
+                  className={`w-full accent-pink-500 ${isLocked ? 'opacity-40 cursor-not-allowed' : ''}`}
                 />
               </div>
 
@@ -358,12 +429,13 @@ export const SimulationView: React.FC = () => {
                 </div>
                 <input
                   type="range"
+                  disabled={isLocked}
                   min="0"
                   max="50"
                   step="5"
                   value={cutDiscretionary}
                   onChange={(e) => setCutDiscretionary(parseFloat(e.target.value))}
-                  className="w-full accent-purple-600"
+                  className={`w-full accent-purple-600 ${isLocked ? 'opacity-40 cursor-not-allowed' : ''}`}
                 />
               </div>
 
@@ -374,12 +446,13 @@ export const SimulationView: React.FC = () => {
                 </div>
                 <input
                   type="range"
+                  disabled={isLocked}
                   min="3"
                   max="16"
                   step="0.5"
                   value={expectedReturn}
                   onChange={(e) => setExpectedReturn(parseFloat(e.target.value))}
-                  className="w-full accent-fuchsia-500"
+                  className={`w-full accent-fuchsia-500 ${isLocked ? 'opacity-40 cursor-not-allowed' : ''}`}
                 />
               </div>
 
@@ -390,12 +463,13 @@ export const SimulationView: React.FC = () => {
                 </div>
                 <input
                   type="range"
+                  disabled={isLocked}
                   min="2000"
                   max="80000"
                   step="2000"
                   value={startingCapital}
                   onChange={(e) => setStartingCapital(parseFloat(e.target.value))}
-                  className="w-full accent-purple-600"
+                  className={`w-full accent-purple-600 ${isLocked ? 'opacity-40 cursor-not-allowed' : ''}`}
                 />
               </div>
             </div>
@@ -411,12 +485,13 @@ export const SimulationView: React.FC = () => {
                 </div>
                 <input
                   type="range"
+                  disabled={isLocked}
                   min="40"
                   max="100"
                   step="2"
                   value={consistencyPct}
                   onChange={(e) => setConsistencyPct(parseFloat(e.target.value))}
-                  className="w-full accent-purple-600"
+                  className={`w-full accent-purple-600 ${isLocked ? 'opacity-40 cursor-not-allowed' : ''}`}
                 />
               </div>
 
@@ -427,12 +502,13 @@ export const SimulationView: React.FC = () => {
                 </div>
                 <input
                   type="range"
+                  disabled={isLocked}
                   min="20"
                   max="100"
                   step="5"
                   value={morningRoutine}
                   onChange={(e) => setMorningRoutine(parseFloat(e.target.value))}
-                  className="w-full accent-pink-500"
+                  className={`w-full accent-pink-500 ${isLocked ? 'opacity-40 cursor-not-allowed' : ''}`}
                 />
               </div>
 
@@ -443,12 +519,13 @@ export const SimulationView: React.FC = () => {
                 </div>
                 <input
                   type="range"
+                  disabled={isLocked}
                   min="1"
                   max="8"
                   step="0.5"
                   value={screenTimeLimit}
                   onChange={(e) => setScreenTimeLimit(parseFloat(e.target.value))}
-                  className="w-full accent-fuchsia-500"
+                  className={`w-full accent-fuchsia-500 ${isLocked ? 'opacity-40 cursor-not-allowed' : ''}`}
                 />
               </div>
             </div>
@@ -459,14 +536,15 @@ export const SimulationView: React.FC = () => {
             <div className="flex items-center gap-2">
               <input
                 type="text"
+                disabled={isLocked}
                 placeholder="Scenario Name (e.g. Aggressive Money Growth)"
                 value={scenarioName}
                 onChange={(e) => setScenarioName(e.target.value)}
-                className="w-full px-3 py-1.5 text-xs bg-slate-50 border border-purple-100 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:border-pink-500"
+                className={`w-full px-3 py-1.5 text-xs bg-slate-50 border border-purple-100 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:border-pink-500 ${isLocked ? 'opacity-50 cursor-not-allowed' : ''}`}
               />
               <button
                 onClick={handleSaveScenario}
-                disabled={saving}
+                disabled={isLocked || saving || !simulationResult}
                 className="flex-shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-700 hover:to-pink-600 text-white text-xs font-bold shadow-xs transition-all disabled:opacity-50"
               >
                 <Save className="w-3.5 h-3.5" />
@@ -484,187 +562,205 @@ export const SimulationView: React.FC = () => {
 
         {/* Projection Chart & Risk Analysis Column */}
         <div className="lg:col-span-7 space-y-6">
-          {/* Simulation Projected Chart */}
-          <div className="bg-white border border-purple-100 rounded-2xl p-5 sm:p-6 shadow-sm">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h3 className="text-sm font-bold text-purple-950 flex items-center gap-2">
-                  <TrendingUp className="w-4 h-4 text-pink-600" />
-                  <span>Projected Trajectory vs Baseline</span>
-                </h3>
-                <p className="text-xs text-slate-500">Comparing your simulated decision against status-quo baseline.</p>
-              </div>
-
-              {simulationResult && (
-                <div
-                  className={`px-3 py-1 rounded-full text-xs font-bold border flex items-center gap-1.5 ${
-                    simulationResult.risk_level === 'High'
-                      ? 'bg-rose-50 text-rose-700 border-rose-200'
-                      : simulationResult.risk_level === 'Moderate'
-                      ? 'bg-amber-50 text-amber-700 border-amber-200'
-                      : 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                  }`}
-                >
-                  <AlertTriangle className="w-3.5 h-3.5" />
-                  <span>Risk: {simulationResult.risk_level} ({simulationResult.risk_score}/100)</span>
-                </div>
-              )}
-            </div>
-
-            {/* SVG Comparison Graph */}
-            {simulationResult && simulationResult.projected_chart && (
-              <div className="h-60 relative flex flex-col justify-end pt-4">
-                <svg className="w-full h-full overflow-visible" viewBox="0 0 500 200">
-                  <defs>
-                    <linearGradient id="simPurplePinkGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-                      <stop offset="0%" stopColor="#ec4899" stopOpacity="0.3" />
-                      <stop offset="100%" stopColor="#a855f7" stopOpacity="0.02" />
-                    </linearGradient>
-                  </defs>
-
-                  {/* Horizontal gridlines */}
-                  {[40, 80, 120, 160].map((y) => (
-                    <line
-                      key={y}
-                      x1="20"
-                      y1={y}
-                      x2="480"
-                      y2={y}
-                      stroke="#f1f5f9"
-                      strokeDasharray="4 4"
-                      strokeWidth="1"
-                    />
-                  ))}
-
-                  {/* Draw Baseline and Simulated Paths */}
-                  {(() => {
-                    const simPts = simulationResult.projected_chart.simulated || [];
-                    const basePts = simulationResult.projected_chart.baseline || [];
-                    if (simPts.length < 2) return null;
-
-                    const maxVal = Math.max(...simPts, ...basePts, 1);
-                    const minVal = Math.min(...simPts, ...basePts, 0);
-                    const range = maxVal - minVal || 1;
-                    const stepX = 460 / (simPts.length - 1);
-
-                    const simCoords = simPts.map((val, idx) => {
-                      const x = 20 + idx * stepX;
-                      const y = 175 - ((val - minVal) / range) * 145;
-                      return { x, y, val };
-                    });
-
-                    const baseCoords = basePts.map((val, idx) => {
-                      const x = 20 + idx * stepX;
-                      const y = 175 - ((val - minVal) / range) * 145;
-                      return { x, y, val };
-                    });
-
-                    const simPathStr = `M ${simCoords.map((c) => `${c.x},${c.y}`).join(' L ')}`;
-                    const basePathStr = `M ${baseCoords.map((c) => `${c.x},${c.y}`).join(' L ')}`;
-                    const simArea = `${simPathStr} L ${simCoords[simCoords.length - 1].x},175 L 20,175 Z`;
-
-                    return (
-                      <>
-                        <path d={simArea} fill="url(#simPurplePinkGrad)" />
-                        <path
-                          d={basePathStr}
-                          fill="none"
-                          stroke="#94a3b8"
-                          strokeWidth="2"
-                          strokeDasharray="5 5"
-                        />
-                        <path
-                          d={simPathStr}
-                          fill="none"
-                          stroke="#ec4899"
-                          strokeWidth="3.5"
-                          strokeLinecap="round"
-                        />
-
-                        {simCoords.map((c, idx) => (
-                          <g key={idx}>
-                            <circle cx={c.x} cy={c.y} r="5" fill="#ec4899" stroke="#fff" strokeWidth="2" />
-                            <text
-                              x={c.x}
-                              y={c.y - 8}
-                              textAnchor="middle"
-                              fill="#7e22ce"
-                              fontSize="10"
-                              fontWeight="bold"
-                              fontFamily="sans-serif"
-                            >
-                              {scenarioType === 'wealth_accumulation' ? `Money ${(c.val / 1000).toFixed(0)}k` : c.val}
-                            </text>
-                          </g>
-                        ))}
-                      </>
-                    );
-                  })()}
-                </svg>
-
-                {/* X-axis time points */}
-                <div className="flex justify-between text-[11px] text-slate-500 font-bold pt-2 border-t border-purple-50">
-                  {(simulationResult.projected_chart.months ||
-                    simulationResult.projected_chart.years ||
-                    simulationResult.projected_chart.weeks ||
-                    [1, 2, 3, 4, 5, 6]
-                  ).map((t, i) => (
-                    <span key={i}>
-                      {scenarioType === 'wealth_accumulation'
-                        ? `Yr ${t}`
-                        : scenarioType === 'lifestyle_habits'
-                        ? `Wk ${t}`
-                        : `Mo ${t}`}
-                    </span>
-                  ))}
-                </div>
-
-                <div className="mt-2 flex items-center justify-center gap-6 text-xs text-slate-600 font-medium">
-                  <span className="flex items-center gap-2">
-                    <span className="w-3 h-1 bg-pink-500 rounded-full" /> Simulated Trajectory
-                  </span>
-                  <span className="flex items-center gap-2">
-                    <span className="w-3 h-0.5 border-t-2 border-dashed border-slate-400" /> Status Quo Baseline
-                  </span>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* COMPREHENSIVE RECOMMENDATIONS & STRATEGIC PLAYBOOK */}
-          <div className="bg-white border border-purple-100 rounded-2xl p-5 sm:p-6 shadow-sm space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-bold text-purple-950 flex items-center gap-2">
-                <Lightbulb className="w-4 h-4 text-pink-600" />
-                <span>Simulated Recommendations &amp; Strategic Levers</span>
-              </h3>
-              <span className="text-[11px] font-bold text-purple-700 bg-purple-50 px-2.5 py-0.5 rounded-full border border-purple-200">
-                Decision Guidance
-              </span>
-            </div>
-
-            <div className="space-y-3">
-              {structuredRecommendations.map((rec) => (
-                <div
-                  key={rec.id}
-                  className="p-4 rounded-xl bg-purple-50/40 border border-purple-100 space-y-2 hover:bg-purple-50/70 transition-colors"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${rec.badgeColor}`}>
-                        {rec.badge}
-                      </span>
-                      <span className="text-xs font-bold text-purple-950">{rec.title}</span>
-                    </div>
-                    <span className="text-[11px] font-extrabold text-pink-600 bg-white px-2 py-0.5 rounded-md border border-purple-100 shadow-2xs">
-                      {rec.gainEstimate}
-                    </span>
+          {isLocked ? (
+            <ReadinessPanel
+              readiness={readiness}
+              activeModule={currentModule}
+              onModuleSelect={(mod) => setScenarioType(moduleToScenarioMap[mod])}
+              title={`Simulation Locked: ${
+                scenarioType === 'study_career'
+                  ? 'Study & Career Mastery'
+                  : scenarioType === 'wealth_accumulation'
+                  ? 'Money & Wealth'
+                  : 'Habit Compounding'
+              }`}
+              description="Decision simulation requires at least 14 active days of historical data in this module to calibrate your baseline trajectory and project realistic outcomes."
+            />
+          ) : (
+            <>
+              {/* Simulation Projected Chart */}
+              <div className="bg-white border border-purple-100 rounded-2xl p-5 sm:p-6 shadow-sm">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h3 className="text-sm font-bold text-purple-950 flex items-center gap-2">
+                      <TrendingUp className="w-4 h-4 text-pink-600" />
+                      <span>Projected Trajectory vs Baseline</span>
+                    </h3>
+                    <p className="text-xs text-slate-500">Comparing your simulated decision against status-quo baseline.</p>
                   </div>
-                  <p className="text-xs text-slate-700 leading-relaxed font-medium">{rec.action}</p>
+
+                  {simulationResult && (
+                    <div
+                      className={`px-3 py-1 rounded-full text-xs font-bold border flex items-center gap-1.5 ${
+                        simulationResult.risk_level === 'High'
+                          ? 'bg-rose-50 text-rose-700 border-rose-200'
+                          : simulationResult.risk_level === 'Moderate'
+                          ? 'bg-amber-50 text-amber-700 border-amber-200'
+                          : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                      }`}
+                    >
+                      <AlertTriangle className="w-3.5 h-3.5" />
+                      <span>Risk: {simulationResult.risk_level} ({simulationResult.risk_score}/100)</span>
+                    </div>
+                  )}
                 </div>
-              ))}
-            </div>
-          </div>
+
+                {/* SVG Comparison Graph */}
+                {simulationResult && simulationResult.projected_chart && (
+                  <div className="h-60 relative flex flex-col justify-end pt-4">
+                    <svg className="w-full h-full overflow-visible" viewBox="0 0 500 200">
+                      <defs>
+                        <linearGradient id="simPurplePinkGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                          <stop offset="0%" stopColor="#ec4899" stopOpacity="0.3" />
+                          <stop offset="100%" stopColor="#a855f7" stopOpacity="0.02" />
+                        </linearGradient>
+                      </defs>
+
+                      {/* Horizontal gridlines */}
+                      {[40, 80, 120, 160].map((y) => (
+                        <line
+                          key={y}
+                          x1="20"
+                          y1={y}
+                          x2="480"
+                          y2={y}
+                          stroke="#f1f5f9"
+                          strokeDasharray="4 4"
+                          strokeWidth="1"
+                        />
+                      ))}
+
+                      {/* Draw Baseline and Simulated Paths */}
+                      {(() => {
+                        const simPts = simulationResult.projected_chart.simulated || [];
+                        const basePts = simulationResult.projected_chart.baseline || [];
+                        if (simPts.length < 2) return null;
+
+                        const maxVal = Math.max(...simPts, ...basePts, 1);
+                        const minVal = Math.min(...simPts, ...basePts, 0);
+                        const range = maxVal - minVal || 1;
+                        const stepX = 460 / (simPts.length - 1);
+
+                        const simCoords = simPts.map((val, idx) => {
+                          const x = 20 + idx * stepX;
+                          const y = 175 - ((val - minVal) / range) * 145;
+                          return { x, y, val };
+                        });
+
+                        const baseCoords = basePts.map((val, idx) => {
+                          const x = 20 + idx * stepX;
+                          const y = 175 - ((val - minVal) / range) * 145;
+                          return { x, y, val };
+                        });
+
+                        const simPathStr = `M ${simCoords.map((c) => `${c.x},${c.y}`).join(' L ')}`;
+                        const basePathStr = `M ${baseCoords.map((c) => `${c.x},${c.y}`).join(' L ')}`;
+                        const simArea = `${simPathStr} L ${simCoords[simCoords.length - 1].x},175 L 20,175 Z`;
+
+                        return (
+                          <>
+                            <path d={simArea} fill="url(#simPurplePinkGrad)" />
+                            <path
+                              d={basePathStr}
+                              fill="none"
+                              stroke="#94a3b8"
+                              strokeWidth="2"
+                              strokeDasharray="5 5"
+                            />
+                            <path
+                              d={simPathStr}
+                              fill="none"
+                              stroke="#ec4899"
+                              strokeWidth="3.5"
+                              strokeLinecap="round"
+                            />
+
+                            {simCoords.map((c, idx) => (
+                              <g key={idx}>
+                                <circle cx={c.x} cy={c.y} r="5" fill="#ec4899" stroke="#fff" strokeWidth="2" />
+                                <text
+                                  x={c.x}
+                                  y={c.y - 8}
+                                  textAnchor="middle"
+                                  fill="#7e22ce"
+                                  fontSize="10"
+                                  fontWeight="bold"
+                                  fontFamily="sans-serif"
+                                >
+                                  {scenarioType === 'wealth_accumulation' ? `Money ${(c.val / 1000).toFixed(0)}k` : c.val}
+                                </text>
+                              </g>
+                            ))}
+                          </>
+                        );
+                      })()}
+                    </svg>
+
+                    {/* X-axis time points */}
+                    <div className="flex justify-between text-[11px] text-slate-500 font-bold pt-2 border-t border-purple-50">
+                      {(simulationResult.projected_chart.months ||
+                        simulationResult.projected_chart.years ||
+                        simulationResult.projected_chart.weeks ||
+                        [1, 2, 3, 4, 5, 6]
+                      ).map((t, i) => (
+                        <span key={i}>
+                          {scenarioType === 'wealth_accumulation'
+                            ? `Yr ${t}`
+                            : scenarioType === 'lifestyle_habits'
+                            ? `Wk ${t}`
+                            : `Mo ${t}`}
+                        </span>
+                      ))}
+                    </div>
+
+                    <div className="mt-2 flex items-center justify-center gap-6 text-xs text-slate-600 font-medium">
+                      <span className="flex items-center gap-2">
+                        <span className="w-3 h-1 bg-pink-500 rounded-full" /> Simulated Trajectory
+                      </span>
+                      <span className="flex items-center gap-2">
+                        <span className="w-3 h-0.5 border-t-2 border-dashed border-slate-400" /> Status Quo Baseline
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* COMPREHENSIVE RECOMMENDATIONS & STRATEGIC PLAYBOOK */}
+              <div className="bg-white border border-purple-100 rounded-2xl p-5 sm:p-6 shadow-sm space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-bold text-purple-950 flex items-center gap-2">
+                    <Lightbulb className="w-4 h-4 text-pink-600" />
+                    <span>Simulated Recommendations &amp; Strategic Levers</span>
+                  </h3>
+                  <span className="text-[11px] font-bold text-purple-700 bg-purple-50 px-2.5 py-0.5 rounded-full border border-purple-200">
+                    Decision Guidance
+                  </span>
+                </div>
+
+                <div className="space-y-3">
+                  {structuredRecommendations.map((rec) => (
+                    <div
+                      key={rec.id}
+                      className="p-4 rounded-xl bg-purple-50/40 border border-purple-100 space-y-2 hover:bg-purple-50/70 transition-colors"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${rec.badgeColor}`}>
+                            {rec.badge}
+                          </span>
+                          <span className="text-xs font-bold text-purple-950">{rec.title}</span>
+                        </div>
+                        <span className="text-[11px] font-extrabold text-pink-600 bg-white px-2 py-0.5 rounded-md border border-purple-100 shadow-2xs">
+                          {rec.gainEstimate}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-700 leading-relaxed font-medium">{rec.action}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </div>
 

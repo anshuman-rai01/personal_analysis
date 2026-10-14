@@ -53,11 +53,37 @@ Beyond passive logging, OmniLife features a **1,200-record multivariate Machine 
 * **Client-Confirmed Actions**: Writes and deletes require explicit user confirmation cards before execution.
 * **Currency Enforcement**: Strict numerical generation in **Indian Rupees (₹)**.
 
-### 9. Authentication & User Management
-* **Dual-Mode System**:
-  * **Email & Password**: Registration with password strength checks, confirmation, and password reset.
-  * **1-Click Instant Demo Login**: Frictionless authentication designed for iframe preview environments without popup blockers.
-  * **Google Sign-In**: Firebase OAuth with mutex guards preventing popup concurrency assertion errors.
+### 9. Strict Authentication & Registration Gating
+* **Strict Gate**: Every user action is gated behind authentic Firebase Authentication and registered PostgreSQL profiles. Guest logins, un-isolated demo sessions, and fallback accounts have been completely removed.
+* **Email & Password**: Registration with client-side password strength validation and atomic backend registration (`POST /api/auth/register`).
+* **Google Sign-In**: Firebase OAuth with mutex guards preventing popup concurrency assertion errors, paired with automatic profile registration on first sign-in.
+* **Security & Isolation Enforcement**:
+  * Unauthenticated requests are rejected immediately with HTTP 401 Unauthorized.
+  * Tokens from users not yet registered in PostgreSQL receive HTTP 403 Forbidden with `{ error: 'User is not registered in OmniLife Studio', code: 'NOT_REGISTERED' }`, prompting the client to register or sign out.
+* **Public Endpoints (Unauthenticated)**:
+  * `GET /api/health`: Database and service availability check.
+  * `GET /api/download-guide-pdf`: User manual PDF.
+  * `GET /api/download-presentation-script-pdf`: Presentation script PDF.
+  * `GET /api/download-ieee-paper-pdf`: Academic IEEE paper PDF.
+* **Firebase Console Prerequisites**:
+  * Enable the **Email/Password** sign-in provider in the Firebase Console under Authentication > Sign-in method.
+  * Ensure your domain (e.g. `localhost`) is listed in Firebase Console under Authentication > Settings > Authorized domains.
+  * Set `FIREBASE_PROJECT_ID` in `.env` (or ensure `projectId` is populated in `firebase-applet-config.json`).
+
+---
+
+## 🔒 Data Isolation & Forecast Data Thresholds
+
+### Clean New-User State
+* **Zero Automatic Seeding**: Newly registered accounts start completely clean with 0 records in all modules.
+* **Neutral Synergy Index**: The Central Dashboard displays `--/100` (`null`) for the Life Synergy Index until a user has logged records across at least two distinct domains.
+* **Strict User Partitioning**: Every database query filters explicitly by `user_id = req.user.id`.
+
+### Forecast & Simulation Thresholds
+* **14-Day Minimum**: Predictive ML forecasting (`POST /api/ml/train`) and What-If decision simulations (`POST /api/simulation/run`) require at least **14 distinct active days** of real activity in the selected domain.
+* **HTTP 422 Rejection**: Requests submitted with fewer than 14 active days are rejected server-side with HTTP 422 `INSUFFICIENT_DATA` before invoking the Python engine.
+* **Custom CSV Training**: User-uploaded CSV datasets require a minimum of 14 valid data rows.
+* **Readiness UI**: Visual progress bars and confidence badges indicate progress toward the 14-day calibration mark and the 28-day high-reliability mark.
 
 ---
 
@@ -85,7 +111,7 @@ Beyond passive logging, OmniLife features a **1,200-record multivariate Machine 
 * **Database**: Cloud SQL PostgreSQL with Drizzle ORM.
 * **Machine Learning**: Python 3 (`scripts/ml_forecasting.py`).
 * **AI Engine**: `@google/genai` SDK with Gemini 3.7 / 3.5 / 3.8 Flash.
-* **Auth**: Firebase Authentication (Email/Password, Google OAuth, Local Session).
+* **Auth**: Firebase Authentication (Email/Password, Google OAuth) with strict server-side PostgreSQL registration gating.
 
 ---
 
@@ -256,11 +282,13 @@ docker compose ps
 | :--- | :--- | :--- |
 | `npm run dev` | Full-Stack (`backend/src/server.ts`) | Launches Express backend + Vite dev middleware orchestrator on port 3000. |
 | `npm run build` | Frontend (`frontend/vite.config.ts`) | Compiles production client bundle into `frontend/dist`. |
-| `npm run test` | Monorepo (`backend` & `frontend`) | Runs all 14 test suites (82 tests) across backend and frontend services. |
+| `npm run test` | Monorepo (`backend` & `frontend`) | Runs test suites across backend and frontend services. |
 | `npm run lint` | Monorepo (`tsc --noEmit`) | Strict TypeScript compiler validation across all monorepo source files. |
 | `npm run db:setup` | Backend (`backend/scripts/setup-db.ts`) | **Idempotent bootstrap.** Creates database if missing and verifies schema tables without altering data. |
-| `npm run db:check` | Backend (`backend/scripts/check-db.ts`) | **Read-only audit.** Inspects connection, verifies all 8 tables, and displays live row counts. |
-| `npm run db:seed` | Backend (`backend/scripts/seed.ts`) | Populates 30 days of realistic multi-domain demo data. |
+| `npm run db:check` | Backend (`backend/scripts/check-db.ts`) | **Read-only audit.** Inspects connection, audits rows grouped by identity class (`firebase`, `guest_`, `usr_`, `demo_`, `default`), and warns on un-isolated accounts. |
+| `npm run db:seed -- --email <email>` | Backend (`backend/scripts/seed.ts`) | Populates 30 days of realistic multi-domain demo data for a registered user. Requires `--email`. |
+| `npm run db:clear-user -- --email <email>` | Backend (`backend/scripts/clear-user-data.ts`) | Safely wipes domain records for a specific user (FK-safe order). Dry run by default; use `--execute --yes`. Add `--delete-user` to also remove profile. |
+| `npm run db:purge-legacy` | Backend (`backend/scripts/purge-legacy.ts`) | Purges legacy test accounts (`guest_*`, `usr_*`, `demo_*`, `default_user_101`). Dry run by default; use `--execute --yes`. |
 | `npm run db:push` | Backend (`drizzle-kit push`) | Applies Drizzle relational schema changes directly to the target database. |
 | `npm run clean:cache` | Root tooling (`scripts/clean-cache.mjs`) | Clears `.vite`, `.next`, and build caches across the monorepo. |
 

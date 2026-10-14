@@ -1,454 +1,208 @@
-import 'dotenv/config';
-import dotenv from 'dotenv';
+import * as dotenv from 'dotenv';
 import path from 'path';
+import readline from 'readline';
+import { seedAccount } from '../src/db/seedAccount.ts';
+import { maskConnectionInfo } from '../src/db/health.ts';
 
+dotenv.config();
 dotenv.config({ path: path.resolve(import.meta.dirname, '../../../.env') });
-import { db, pool } from '../src/db/index.ts';
-import {
-  users,
-  studySessions,
-  financeTransactions,
-  habits,
-  habitLogs,
-  goals,
-  simulationScenarios,
-  forecastModels,
-} from '../src/db/schema.ts';
-import { eq } from 'drizzle-orm';
 
-/**
- * Format a Date object to YYYY-MM-DD
- */
-function toDateStr(d: Date): string {
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-}
-
-/**
- * Get YYYY-MM-DD string for N days ago
- */
-function daysAgo(n: number): string {
-  const d = new Date();
-  d.setDate(d.getDate() - n);
-  return toDateStr(d);
-}
-
-/**
- * Get timestamp for N days ago at a specific hour
- */
-function timestampDaysAgo(n: number, hour = 12): Date {
-  const d = new Date();
-  d.setDate(d.getDate() - n);
-  d.setHours(hour, Math.floor(Math.random() * 60), 0, 0);
-  return d;
-}
-
-/**
- * Seed full 30-day historical data for a specific user UID
- */
-async function seedUserData(targetUid: string, targetEmail: string, displayName: string) {
-  console.log(`----------------------------------------------------`);
-  console.log(`Seeding User: ${targetEmail} (UID: ${targetUid})`);
-  console.log(`----------------------------------------------------`);
-
-  // 1. Locate registered user in PostgreSQL
-  const existingUsers = await db
-    .select()
-    .from(users)
-    .where(eq(users.uid, targetUid));
-
-  if (existingUsers.length === 0) {
-    throw new Error(`User with UID ${targetUid} was not found in users table.`);
-  }
-
-  const userRecord = existingUsers[0];
-  console.log(`  [Users] Found registered profile (id=${userRecord.id}, uid=${userRecord.uid})`);
-
-  // 2. Clean previous records for idempotency (FK-safe order)
-  await db.delete(habitLogs).where(eq(habitLogs.userId, targetUid));
-  await db.delete(habits).where(eq(habits.userId, targetUid));
-  await db.delete(studySessions).where(eq(studySessions.userId, targetUid));
-  await db.delete(financeTransactions).where(eq(financeTransactions.userId, targetUid));
-  await db.delete(goals).where(eq(goals.userId, targetUid));
-  await db.delete(simulationScenarios).where(eq(simulationScenarios.userId, targetUid));
-  await db.delete(forecastModels).where(eq(forecastModels.userId, targetUid));
-
-  // 3. Generate Finance Transactions (at least 20-25 distinct expense days + 1-2 income transactions)
-  const financeRows: Array<{
-    userId: string;
-    title: string;
-    type: string;
-    category: string;
-    amount: number;
-    paymentMethod: string;
-    date: string;
-    notes: string;
-    createdAt: Date;
-  }> = [];
-
-  // 2 Income transactions dated 15-30 days ago
-  financeRows.push({
-    userId: targetUid,
-    title: 'Monthly Salary (Software Engineering)',
-    type: 'income',
-    category: 'Salary',
-    amount: 90000,
-    paymentMethod: 'Bank Transfer',
-    date: daysAgo(28),
-    notes: 'Direct deposit monthly corporate compensation',
-    createdAt: timestampDaysAgo(28, 9),
-  });
-
-  financeRows.push({
-    userId: targetUid,
-    title: 'Freelance AI Consulting Retainer',
-    type: 'income',
-    category: 'Salary',
-    amount: 35000,
-    paymentMethod: 'Bank Transfer',
-    date: daysAgo(15),
-    notes: 'Quarterly ML architecture retainer',
-    createdAt: timestampDaysAgo(15, 14),
-  });
-
-  // Expense catalog templates with realistic amounts
-  const expenseCatalog = [
-    { title: 'Fresh Produce & Groceries', category: 'Food', amount: 650, method: 'UPI', notes: 'Weekly vegetables, fruits & dairy' },
-    { title: 'Supermarket Restock & Pantry', category: 'Food', amount: 1420, method: 'Credit Card', notes: 'Dry pantry items & grains' },
-    { title: 'Café Espresso & Working Lunch', category: 'Food', amount: 480, method: 'UPI', notes: 'Coffee meeting' },
-    { title: 'Healthy Dinner & Protein Greens', category: 'Food', amount: 550, method: 'UPI', notes: 'Organic dinner' },
-    { title: 'Metro Transit Smart Card Recharge', category: 'Transport', amount: 400, method: 'UPI', notes: 'Monthly metro pass' },
-    { title: 'Uber Commute to Workspace', category: 'Transport', amount: 320, method: 'UPI', notes: 'Direct morning cab ride' },
-    { title: 'High-Speed Fiber Internet Bill', category: 'Utilities', amount: 1199, method: 'Credit Card', notes: '300 Mbps fiber line' },
-    { title: 'Electricity & Power Board Bill', category: 'Utilities', amount: 1850, method: 'Bank Transfer', notes: 'Monthly utility bill' },
-    { title: 'Mobile 5G Postpaid Plan', category: 'Utilities', amount: 699, method: 'UPI', notes: 'Monthly plan' },
-    { title: 'Cloud Infrastructure & API Credits', category: 'Tech', amount: 2450, method: 'Credit Card', notes: 'Gemini API tokens & compute' },
-    { title: 'Books & ML Research Paper Prints', category: 'Education', amount: 750, method: 'UPI', notes: 'Textbooks & journals' },
-    { title: 'Gym & Fitness Center Membership', category: 'Health', amount: 2000, method: 'Bank Transfer', notes: 'Monthly strength training pass' },
-    { title: 'Apartment Maintenance & Water', category: 'Housing', amount: 2500, method: 'Bank Transfer', notes: 'Society maintenance fee' },
-    { title: 'Nifty 50 Index Mutual Fund SIP', category: 'Investment', amount: 7500, method: 'Bank Transfer', notes: 'Monthly index wealth SIP' },
-  ];
-
-  // Distribute expenses across 26 distinct days within past 30 days
-  const expenseDays = [
-    1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
-    11, 12, 13, 14, 16, 17, 18, 19, 20,
-    21, 22, 23, 24, 25, 26, 27, 29
-  ];
-
-  let catIdx = 0;
-  for (const day of expenseDays) {
-    const item1 = expenseCatalog[catIdx % expenseCatalog.length];
-    catIdx++;
-    financeRows.push({
-      userId: targetUid,
-      title: item1.title,
-      type: item1.category === 'Investment' ? 'investment' : 'expense',
-      category: item1.category,
-      amount: item1.amount,
-      paymentMethod: item1.method,
-      date: daysAgo(day),
-      notes: item1.notes,
-      createdAt: timestampDaysAgo(day, 11),
-    });
-
-    // Add a second transaction on even days
-    if (day % 2 === 0) {
-      const item2 = expenseCatalog[catIdx % expenseCatalog.length];
-      catIdx++;
-      financeRows.push({
-        userId: targetUid,
-        title: item2.title,
-        type: item2.category === 'Investment' ? 'investment' : 'expense',
-        category: item2.category,
-        amount: item2.amount,
-        paymentMethod: item2.method,
-        date: daysAgo(day),
-        notes: item2.notes,
-        createdAt: timestampDaysAgo(day, 16),
-      });
-    }
-  }
-
-  await db.insert(financeTransactions).values(financeRows);
-  const distinctDays = new Set(financeRows.filter(r => r.type === 'expense').map(r => r.date)).size;
-  console.log(`  [Finance] Inserted ${financeRows.length} transactions across ${distinctDays} distinct expense days + 2 income.`);
-
-  // 4. Generate Study Sessions (15-20 sessions, durations 30-120 min, focus 6-10)
-  const studyTopics = [
-    { subject: 'Machine Learning', topic: 'Backpropagation & Loss Optimization', technique: 'Deep Work' },
-    { subject: 'Machine Learning', topic: 'Attention Mechanisms & Transformers', technique: 'Deep Work' },
-    { subject: 'Machine Learning', topic: 'Time Series Forecasting & ARIMA Models', technique: 'Active Recall' },
-    { subject: 'PostgreSQL Architecture', topic: 'B-Tree Index Scans vs Bitmap Heap Scans', technique: 'Pomodoro' },
-    { subject: 'PostgreSQL Architecture', topic: 'VACUUM, MVCC & Transaction Isolation', technique: 'Feynman Method' },
-    { subject: 'PostgreSQL Architecture', topic: 'Connection Pooling & Query Plan Caching', technique: 'Deep Work' },
-    { subject: 'Algorithms & DS', topic: 'Graph Theory: Dijkstra & Bellman-Ford', technique: 'Active Recall' },
-    { subject: 'Algorithms & DS', topic: 'Dynamic Programming: 2D Grid DP', technique: 'Pomodoro' },
-    { subject: 'Algorithms & DS', topic: 'Interval Scheduling & Greedy Approaches', technique: 'Pomodoro' },
-    { subject: 'Distributed Systems', topic: 'Raft Consensus Protocol & Log Replication', technique: 'Deep Work' },
-    { subject: 'Distributed Systems', topic: 'CAP Theorem & Eventual Consistency', technique: 'Feynman Method' },
-    { subject: 'TypeScript Internals', topic: 'Conditional Types & Infer Keyword', technique: 'Active Recall' },
-    { subject: 'TypeScript Internals', topic: 'Template Literal Types & Type Guards', technique: 'Pomodoro' },
-    { subject: 'System Design', topic: 'Scalable Sharding & Write Replication', technique: 'Deep Work' },
-    { subject: 'System Design', topic: 'Rate Limiting Algorithms: Token Bucket', technique: 'Active Recall' },
-    { subject: 'Applied Mathematics', topic: 'Linear Algebra: Eigenvalues & PCA', technique: 'Deep Work' },
-    { subject: 'Applied Mathematics', topic: 'Multivariable Calculus: Hessian Matrices', technique: 'Pomodoro' },
-    { subject: 'Applied Statistics', topic: 'Bayesian Inference & Markov Chains', technique: 'Deep Work' },
-  ];
-
-  const studyDays = [1, 2, 4, 5, 7, 9, 11, 12, 14, 16, 18, 19, 21, 23, 25, 26, 28, 29];
-  const studyRows = studyTopics.map((st, idx) => {
-    const day = studyDays[idx];
-    const duration = [45, 60, 75, 90, 105, 120][idx % 6];
-    const focusScore = 7 + (idx % 4);
-    const energyScore = 6 + (idx % 5);
-
-    return {
-      userId: targetUid,
-      subject: st.subject,
-      topic: st.topic,
-      durationMinutes: duration,
-      technique: st.technique,
-      focusScore,
-      energyScore,
-      date: daysAgo(day),
-      notes: `Session notes on ${st.topic}. Solved practice problems and flashcard reviews.`,
-      createdAt: timestampDaysAgo(day, 10),
-    };
-  });
-
-  await db.insert(studySessions).values(studyRows);
-  console.log(`  [Study] Inserted ${studyRows.length} study sessions (duration 45-120m, focus 7-10).`);
-
-  // 5. Habits & 14-day completion logs
-  const targetHabits = [
-    {
-      name: 'Daily Expense Audit',
-      category: 'Learning',
-      frequency: 'daily',
-      targetDaysPerWeek: 7,
-      currentStreak: 14,
-      longestStreak: 30,
-      color: '#f59e0b',
-      icon: 'wallet',
-    },
-    {
-      name: 'Strength Training or 5K Run',
-      category: 'Fitness',
-      frequency: 'daily',
-      targetDaysPerWeek: 7,
-      currentStreak: 14,
-      longestStreak: 21,
-      color: '#10b981',
-      icon: 'flame',
-    },
-    {
-      name: '60-Minute Deep Work Block',
-      category: 'Productivity',
-      frequency: 'daily',
-      targetDaysPerWeek: 7,
-      currentStreak: 14,
-      longestStreak: 28,
-      color: '#8b5cf6',
-      icon: 'brain',
-    },
-    {
-      name: 'Morning Cold Shower & Hydration',
-      category: 'Health',
-      frequency: 'daily',
-      targetDaysPerWeek: 7,
-      currentStreak: 14,
-      longestStreak: 35,
-      color: '#06b6d4',
-      icon: 'droplets',
-    },
-  ];
-
-  const existingHabits = await db
-    .select()
-    .from(habits)
-    .where(eq(habits.userId, targetUid));
-
-  const habitMap = new Map<string, number>();
-
-  for (const th of targetHabits) {
-    const existing = existingHabits.find(h => h.name === th.name);
-    if (existing) {
-      await db
-        .update(habits)
-        .set({
-          currentStreak: th.currentStreak,
-          longestStreak: th.longestStreak,
-          targetDaysPerWeek: th.targetDaysPerWeek,
-          color: th.color,
-          icon: th.icon,
-        })
-        .where(eq(habits.id, existing.id));
-      habitMap.set(th.name, existing.id);
-    } else {
-      const created = await db
-        .insert(habits)
-        .values({
-          userId: targetUid,
-          ...th,
-        })
-        .returning();
-      habitMap.set(th.name, created[0].id);
-    }
-  }
-
-  const logRows: Array<{
-    habitId: number;
-    userId: string;
-    date: string;
-    completed: number;
-    moodScore: number;
-    durationMinutes: number;
-    notes: string;
-    createdAt: Date;
-  }> = [];
-
-  for (let dayOffset = 0; dayOffset < 14; dayOffset++) {
-    const dateStr = daysAgo(dayOffset);
-
-    for (const th of targetHabits) {
-      const habitId = habitMap.get(th.name)!;
-      let duration = 15;
-      let notes = 'Daily routine completed.';
-
-      if (th.name === '60-Minute Deep Work Block') duration = 60;
-      else if (th.name === 'Strength Training or 5K Run') duration = 45;
-      else if (th.name === 'Daily Expense Audit') duration = 10;
-      else if (th.name === 'Morning Cold Shower & Hydration') duration = 15;
-
-      logRows.push({
-        habitId,
-        userId: targetUid,
-        date: dateStr,
-        completed: 1,
-        moodScore: 5,
-        durationMinutes: duration,
-        notes,
-        createdAt: timestampDaysAgo(dayOffset, 8),
-      });
-    }
-  }
-
-  await db.insert(habitLogs).values(logRows);
-  console.log(`  [Habits] 4 habits synced with 14-day streak + ${logRows.length} logs inserted.`);
-
-  // 6. Goals
-  const existingGoals = await db.select().from(goals).where(eq(goals.userId, targetUid));
-  if (existingGoals.length === 0) {
-    await db.insert(goals).values([
-      {
-        userId: targetUid,
-        title: 'Master ML Foundations & Neural Nets',
-        module: 'study',
-        targetValue: 60,
-        currentValue: 38,
-        unit: 'Hours',
-        deadline: '2026-11-30',
-        milestones: JSON.stringify([
-          { id: 1, text: 'Complete gradient descent derivations', done: true },
-          { id: 2, text: 'Implement Multi-Layer Perceptron from scratch', done: true },
-          { id: 3, text: 'Fine-tune transformer model on custom dataset', done: false },
-        ]),
-        status: 'in_progress',
-      },
-      {
-        userId: targetUid,
-        title: 'Build ₹3,00,000 Liquid Emergency Reserve',
-        module: 'finance',
-        targetValue: 300000,
-        currentValue: 185000,
-        unit: 'Money',
-        deadline: '2026-12-31',
-        milestones: JSON.stringify([
-          { id: 1, text: 'Reach ₹1,00,000 threshold', done: true },
-          { id: 2, text: 'Reach ₹2,00,000 threshold', done: false },
-        ]),
-        status: 'in_progress',
-      },
-      {
-        userId: targetUid,
-        title: 'Achieve 30-Day Unbroken Habit Consistency',
-        module: 'habits',
-        targetValue: 30,
-        currentValue: 14,
-        unit: 'Days',
-        deadline: '2026-10-31',
-        milestones: JSON.stringify([
-          { id: 1, text: 'Reach 7-day milestone', done: true },
-          { id: 2, text: 'Reach 14-day milestone', done: true },
-          { id: 3, text: 'Reach 30-day milestone', done: false },
-        ]),
-        status: 'in_progress',
-      },
-    ]);
-    console.log(`  [Goals] 3 strategic goals established.`);
-  }
-
-  console.log(`  -> Completed seeding for ${targetEmail}!\n`);
-}
-
-async function main() {
-  console.log('====================================================');
-  console.log('OmniLife Studio: 30-Day Historical Database Seeder');
-  console.log('====================================================\n');
-
-  // Developer demonstration tool only. Never runs automatically.
+function parseArgs(): {
+  email?: string;
+  execute: boolean;
+  reset: boolean;
+  yes: boolean;
+} {
   const args = process.argv.slice(2);
-  let targetEmail: string | undefined;
+  let email: string | undefined;
+  let execute = false;
+  let reset = false;
+  let yes = false;
 
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
     if (arg === '--email' && args[i + 1]) {
-      targetEmail = args[++i];
-      break;
+      email = args[++i];
     } else if (arg.startsWith('--email=')) {
-      targetEmail = arg.slice(8);
-      break;
-    } else if (arg.includes('@') && !arg.startsWith('-')) {
-      targetEmail = arg;
-      break;
+      email = arg.slice(8);
+    } else if (arg === '--execute') {
+      execute = true;
+    } else if (arg === '--reset') {
+      reset = true;
+    } else if (arg === '--yes') {
+      yes = true;
+    } else if (!email && arg.includes('@') && !arg.startsWith('-')) {
+      email = arg;
     }
   }
 
-  if (!targetEmail) {
-    console.error('[ERROR] Missing required argument: --email <registered email>');
-    console.error('Usage: npm run db:seed -- --email <registered email>');
-    console.error('\nNOTE: This is a developer tool and NEVER runs automatically.');
-    console.error('The target user MUST already be registered in OmniLife Studio.\n');
-    process.exit(1);
-  }
-
-  const cleanEmail = targetEmail.trim().toLowerCase();
-  const allUsers = await db.select().from(users);
-  const matchedUser = allUsers.find((u) => u.email.toLowerCase() === cleanEmail);
-
-  if (!matchedUser) {
-    console.error(`\n[ABORT] User with email "${targetEmail}" is not registered in the database.`);
-    console.error('Please register this account through the application first before seeding.\n');
-    process.exit(1);
-  }
-
-  await seedUserData(matchedUser.uid, matchedUser.email, matchedUser.displayName || 'OmniLife User');
-
-  console.log('====================================================');
-  console.log('Database Seeding Finished Successfully! 🎉');
-  console.log('====================================================');
-  console.log(`Seeded User: ${matchedUser.email}`);
-  console.log(`User UID:    ${matchedUser.uid}`);
-  console.log('\nReady for ML Forecasting & AI Assistant analysis.');
-  console.log('====================================================\n');
+  return { email, execute, reset, yes };
 }
 
-main()
-  .then(() => process.exit(0))
-  .catch((err) => {
-    console.error('Seeding encountered an error:', err);
-    process.exit(1);
+async function promptConfirm(message: string): Promise<string> {
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
   });
+
+  return new Promise((resolve) => {
+    rl.question(message, (answer) => {
+      rl.close();
+      resolve(answer.trim());
+    });
+  });
+}
+
+async function main() {
+  console.log('======================================================================');
+  console.log('OmniLife Studio: Account Historical Database Seeder');
+  console.log('======================================================================');
+
+  // Refuse in production
+  if (process.env.NODE_ENV === 'production') {
+    console.error('\n[ABORT] Refusing to run db:seed in production environment.\n');
+    process.exit(1);
+  }
+
+  const { email, execute, reset, yes } = parseArgs();
+
+  if (!email) {
+    console.error('\n[ERROR] Missing required argument: --email <registered_email>');
+    console.error('Usage: npm run db:seed -- --email <email> [--reset] [--execute] [--yes]\n');
+    console.error('Examples:');
+    console.error('  npm run db:seed -- --email user@example.com                    (Dry Run)');
+    console.error('  npm run db:seed -- --email user@example.com --reset --execute  (Prompts for confirmation)');
+    console.error('  npm run db:seed -- --email user@example.com --reset --execute --yes\n');
+    process.exit(1);
+  }
+
+  const host = process.env.SQL_HOST || 'localhost';
+  const port = process.env.SQL_PORT ? parseInt(process.env.SQL_PORT, 10) : 5432;
+  const user = process.env.SQL_USER || 'postgres';
+  const dbName = process.env.SQL_DB_NAME || 'omnilife';
+
+  console.log(`Database:     ${maskConnectionInfo({ host, port, user })} / ${dbName}`);
+  console.log(`Target Email: ${email}`);
+  console.log(`Mode:         ${execute ? 'EXECUTE (DATABASE WRITES)' : 'DRY RUN (ZERO CHANGES)'}`);
+  console.log(`Reset Option: ${reset ? 'ENABLED (--reset: clears old data for this user)' : 'DISABLED'}\n`);
+
+  // 1. Dry run preview or pre-check
+  let previewResult;
+  try {
+    previewResult = await seedAccount({ email, execute: false, reset });
+  } catch (err: any) {
+    console.error(`\n[ABORT] ${err.message}\n`);
+    process.exit(1);
+  }
+
+  const target = previewResult.targetUser;
+  console.log(`User Profile: ${target.email} (UID: ${target.uid}, DisplayName: ${target.displayName || 'None'})`);
+  console.log(`Date Window:  ${previewResult.window.startDate} to ${previewResult.window.endDate} (${previewResult.window.totalDays} days, no future dates)\n`);
+
+  console.log('----------------------------------------------------------------------');
+  console.log('Current Data Status for Target User');
+  console.log('----------------------------------------------------------------------');
+  console.log(`study_sessions:            ${previewResult.existingCounts.studySessions}`);
+  console.log(`finance_transactions:      ${previewResult.existingCounts.financeTransactions}`);
+  console.log(`habits:                    ${previewResult.existingCounts.habits}`);
+  console.log(`habit_logs:                ${previewResult.existingCounts.habitLogs}`);
+  console.log(`goals:                     ${previewResult.existingCounts.goals}`);
+  console.log(`simulation_scenarios:      ${previewResult.existingCounts.simulationScenarios}`);
+  console.log(`forecast_models:           ${previewResult.existingCounts.forecastModels}`);
+  console.log(`Total Existing Rows:       ${previewResult.existingCounts.total}`);
+  if (previewResult.existingCounts.total > 0 && reset) {
+    console.log(`> NOTE: All ${previewResult.existingCounts.total} existing records will be cleanly replaced.`);
+  }
+  console.log('----------------------------------------------------------------------\n');
+
+  console.log('----------------------------------------------------------------------');
+  console.log('Planned Records to Insert');
+  console.log('----------------------------------------------------------------------');
+  console.log(`study_sessions:            ${previewResult.plannedCounts.studySessions}`);
+  console.log(`finance_transactions:      ${previewResult.plannedCounts.financeTransactions}`);
+  console.log(`habits:                    ${previewResult.plannedCounts.habits}`);
+  console.log(`habit_logs:                ${previewResult.plannedCounts.habitLogs}`);
+  console.log(`goals:                     ${previewResult.plannedCounts.goals}`);
+  console.log(`Total Planned Rows:        ${previewResult.plannedCounts.total}`);
+  console.log('----------------------------------------------------------------------\n');
+
+  console.log('======================================================================');
+  console.log('Active Days vs Minimum-Data Thresholds Evaluation');
+  console.log('======================================================================');
+  console.log('%-12s %-12s %-12s %-14s %-12s'.replace('%-12s', 'Module'.padEnd(12))
+    .replace('%-12s', 'Active Days'.padEnd(12))
+    .replace('%-12s', 'Min Needed'.padEnd(12))
+    .replace('%-14s', 'Reliable Tier'.padEnd(14))
+    .replace('%-12s', 'Status')
+  );
+  console.log('----------------------------------------------------------------------');
+
+  const { study, finance, habits: habitReport } = previewResult.activeDaysReport;
+  console.log(`${'study'.padEnd(12)} ${String(study.have).padEnd(12)} ${String(study.minimumRequired).padEnd(12)} ${String(study.reliableAt).padEnd(14)} ${study.status.toUpperCase()}`);
+  console.log(`${'finance'.padEnd(12)} ${String(finance.have).padEnd(12)} ${String(finance.minimumRequired).padEnd(12)} ${String(finance.reliableAt).padEnd(14)} ${finance.status.toUpperCase()}`);
+  console.log(`${'habits'.padEnd(12)} ${String(habitReport.have).padEnd(12)} ${String(habitReport.minimumRequired).padEnd(12)} ${String(habitReport.reliableAt).padEnd(14)} ${habitReport.status.toUpperCase()}`);
+  console.log('======================================================================\n');
+
+  console.log('Finance Details:');
+  console.log(`  - Expense Days:            ${previewResult.financeBreakdown.expenseDays} (threshold: >= 35)`);
+  console.log(`  - Income Days:             ${previewResult.financeBreakdown.incomeDays} (threshold: >= 18)`);
+  console.log(`  - Savings/Investment Days: ${previewResult.financeBreakdown.savingsDays} (threshold: >= 16)`);
+  console.log(`  - Total Inflow:            ₹${previewResult.financeBreakdown.totalIncome.toLocaleString('en-IN')}`);
+  console.log(`  - Total Outflow:           ₹${previewResult.financeBreakdown.totalExpenses.toLocaleString('en-IN')}`);
+  console.log(`  - Net Savings:             ₹${previewResult.financeBreakdown.netSavings.toLocaleString('en-IN')}`);
+  console.log(`  - Savings Rate:            ${previewResult.financeBreakdown.savingsRate}% (healthy range: 15% - 40%)\n`);
+
+  if (!execute) {
+    console.log('======================================================================');
+    console.log('[DRY RUN COMPLETE] Zero database modifications were made.');
+    console.log('To execute this seeding, re-run with:');
+    console.log(`  npm run db:seed -- --email ${target.email} --reset --execute`);
+    console.log('======================================================================\n');
+    process.exit(0);
+  }
+
+  // 2. Interactive confirmation if not --yes
+  if (!yes) {
+    console.log(`\nCAUTION: You are about to seed ${previewResult.plannedCounts.total} records for: ${target.email}`);
+    if (previewResult.existingCounts.total > 0) {
+      console.log(`All ${previewResult.existingCounts.total} existing records will be replaced.`);
+    }
+    const confirmation = await promptConfirm(`Type "${target.email}" to confirm: `);
+    if (confirmation.toLowerCase() !== target.email.toLowerCase()) {
+      console.log('\nConfirmation did not match. Aborting without changes.\n');
+      process.exit(0);
+    }
+  }
+
+  // 3. Execute
+  console.log('\nExecuting atomic database transaction...');
+  try {
+    const executedResult = await seedAccount({
+      email,
+      execute: true,
+      reset,
+    });
+
+    console.log('\n======================================================================');
+    console.log('SUCCESS: Database Seeding Completed Successfully! 🎉');
+    console.log('======================================================================');
+    console.log(`Target Account:    ${executedResult.targetUser.email} (${executedResult.targetUser.uid})`);
+    console.log(`Total Rows Seeded: ${executedResult.insertedCounts?.total} records`);
+    console.log(`  - study_sessions:       ${executedResult.insertedCounts?.studySessions}`);
+    console.log(`  - finance_transactions: ${executedResult.insertedCounts?.financeTransactions}`);
+    console.log(`  - habits:               ${executedResult.insertedCounts?.habits}`);
+    console.log(`  - habit_logs:           ${executedResult.insertedCounts?.habitLogs}`);
+    console.log(`  - goals:                ${executedResult.insertedCounts?.goals}`);
+    console.log(`Other Users:       Strictly untouched (0 rows modified for any other user).`);
+    console.log(`Forecasting Gates: Unlocked & Reliable across study, finance, and habits.`);
+    console.log('======================================================================\n');
+  } catch (err: any) {
+    console.error(`\n[FATAL ERROR] Seeding failed and was rolled back: ${err.message}\n`);
+    process.exit(1);
+  }
+}
+
+main().catch((err) => {
+  console.error('Unexpected error:', err);
+  process.exit(1);
+});

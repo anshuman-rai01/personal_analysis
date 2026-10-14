@@ -35,11 +35,19 @@ dashboardRouter.get('/dashboard/overview', requireAuth, async (req: AuthRequest,
     const goalsAchieved = allGoals.filter(g => g.status === 'achieved').length;
     const goalsInProgress = allGoals.filter(g => g.status === 'in_progress').length;
 
-    // Synergy index (0-100 score quantifying holistic habit, study, and financial harmony)
-    const synergyIndex = Math.min(
-      98,
-      Math.max(25, Math.round((avgFocusScore * 4) + (Math.min(50, savingsRate) * 0.4) + (Math.min(20, maxHabitStreak) * 1.5) + 15))
-    );
+    // Synergy index is null until there is real activity in at least two of study, finance, and habits
+    const activeCategoriesCount = [
+      allStudy.length > 0,
+      allFinance.length > 0,
+      allHabits.length > 0,
+    ].filter(Boolean).length;
+
+    const synergyIndex = activeCategoriesCount >= 2
+      ? Math.min(
+          98,
+          Math.max(0, Math.round((avgFocusScore * 4) + (Math.min(50, savingsRate) * 0.4) + (Math.min(20, maxHabitStreak) * 1.5) + 15))
+        )
+      : null;
 
     res.json({
       study: {

@@ -104,6 +104,127 @@ async function main() {
     console.log(`Total Rows: ${totalRows}`);
     console.log('==================================================');
 
+    // Identity Class Breakdown
+    if (existingSet.has('users')) {
+      console.log('\n==================================================');
+      console.log('Identity Class Breakdown');
+      console.log('==================================================');
+      console.log(
+        '%-12s %-14s %-14s'.replace('%-12s', 'Class'.padEnd(12))
+          .replace('%-14s', 'Users Count'.padEnd(14))
+          .replace('%-14s', 'Total Records')
+      );
+      console.log('--------------------------------------------------');
+
+      const classes: Array<'firebase' | 'guest_' | 'usr_' | 'demo_' | 'default'> = [
+        'firebase',
+        'guest_',
+        'usr_',
+        'demo_',
+        'default',
+      ];
+
+      const userCountsByClass: Record<string, number> = {
+        firebase: 0,
+        guest_: 0,
+        usr_: 0,
+        demo_: 0,
+        default: 0,
+      };
+
+      const dataCountsByClass: Record<string, number> = {
+        firebase: 0,
+        guest_: 0,
+        usr_: 0,
+        demo_: 0,
+        default: 0,
+      };
+
+      // Query users grouped by class
+      const userRes = await client.query<{ id_class: string; count: number }>(`
+        SELECT 
+          CASE 
+            WHEN uid = 'default_user_101' THEN 'default'
+            WHEN uid LIKE 'guest_%' THEN 'guest_'
+            WHEN uid LIKE 'usr_%' THEN 'usr_'
+            WHEN uid LIKE 'demo_%' THEN 'demo_'
+            ELSE 'firebase'
+          END AS id_class,
+          count(*)::int AS count
+        FROM users
+        GROUP BY 1
+      `);
+
+      for (const row of userRes.rows) {
+        if (row.id_class in userCountsByClass) {
+          userCountsByClass[row.id_class] = row.count;
+        }
+      }
+
+      // Query data tables for user_id distribution
+      const dataTablesWithUserId = [
+        'study_sessions',
+        'finance_transactions',
+        'habits',
+        'habit_logs',
+        'goals',
+        'simulation_scenarios',
+        'forecast_models',
+      ];
+
+      for (const table of dataTablesWithUserId) {
+        if (existingSet.has(table)) {
+          try {
+            const tableRes = await client.query<{ id_class: string; count: number }>(`
+              SELECT 
+                CASE 
+                  WHEN user_id = 'default_user_101' THEN 'default'
+                  WHEN user_id LIKE 'guest_%' THEN 'guest_'
+                  WHEN user_id LIKE 'usr_%' THEN 'usr_'
+                  WHEN user_id LIKE 'demo_%' THEN 'demo_'
+                  ELSE 'firebase'
+                END AS id_class,
+                count(*)::int AS count
+              FROM "${table}"
+              GROUP BY 1
+            `);
+
+            for (const row of tableRes.rows) {
+              if (row.id_class in dataCountsByClass) {
+                dataCountsByClass[row.id_class] += row.count;
+              }
+            }
+          } catch (_e) {
+            // ignore table query error
+          }
+        }
+      }
+
+      for (const cls of classes) {
+        console.log(
+          `${cls.padEnd(12)} ${String(userCountsByClass[cls]).padEnd(14)} ${dataCountsByClass[cls] + userCountsByClass[cls]}`
+        );
+      }
+      console.log('--------------------------------------------------');
+
+      // Warn if usr_ accounts exist
+      if (userCountsByClass['usr_'] > 0) {
+        console.warn('\n> [WARNING] "usr_" accounts were created by the local-account fallback.');
+        console.warn('> They must be checked before purging in case one belonged to a real person.');
+        try {
+          const usrList = await client.query<{ email: string; uid: string }>(
+            `SELECT email, uid FROM users WHERE uid LIKE 'usr_%'`
+          );
+          for (const u of usrList.rows) {
+            console.warn(`  - Email: ${u.email} (UID: ${u.uid})`);
+          }
+        } catch (_e) {
+          // ignore
+        }
+      }
+      console.log('==================================================\n');
+    }
+
     if (missing.length > 0) {
       console.error(
         `\n[db:check] Action required: Missing tables: ${missing.join(', ')}`

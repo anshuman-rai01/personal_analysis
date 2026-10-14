@@ -11,6 +11,8 @@ import {
   habits,
   habitLogs,
   goals,
+  simulationScenarios,
+  forecastModels,
 } from '../src/db/schema.ts';
 import { eq } from 'drizzle-orm';
 
@@ -51,40 +53,27 @@ async function seedUserData(targetUid: string, targetEmail: string, displayName:
   console.log(`Seeding User: ${targetEmail} (UID: ${targetUid})`);
   console.log(`----------------------------------------------------`);
 
-  // 1. Find or create user in PostgreSQL
+  // 1. Locate registered user in PostgreSQL
   const existingUsers = await db
     .select()
     .from(users)
     .where(eq(users.uid, targetUid));
 
-  let userRecord;
-  if (existingUsers.length > 0) {
-    const updated = await db
-      .update(users)
-      .set({
-        email: targetEmail,
-        displayName,
-      })
-      .where(eq(users.uid, targetUid))
-      .returning();
-    userRecord = updated[0];
-  } else {
-    const inserted = await db
-      .insert(users)
-      .values({
-        uid: targetUid,
-        email: targetEmail,
-        displayName,
-      })
-      .returning();
-    userRecord = inserted[0];
+  if (existingUsers.length === 0) {
+    throw new Error(`User with UID ${targetUid} was not found in users table.`);
   }
-  console.log(`  [Users] Profile synchronized (id=${userRecord.id}, uid=${userRecord.uid})`);
 
-  // 2. Clean previous records for idempotency
+  const userRecord = existingUsers[0];
+  console.log(`  [Users] Found registered profile (id=${userRecord.id}, uid=${userRecord.uid})`);
+
+  // 2. Clean previous records for idempotency (FK-safe order)
   await db.delete(habitLogs).where(eq(habitLogs.userId, targetUid));
+  await db.delete(habits).where(eq(habits.userId, targetUid));
   await db.delete(studySessions).where(eq(studySessions.userId, targetUid));
   await db.delete(financeTransactions).where(eq(financeTransactions.userId, targetUid));
+  await db.delete(goals).where(eq(goals.userId, targetUid));
+  await db.delete(simulationScenarios).where(eq(simulationScenarios.userId, targetUid));
+  await db.delete(forecastModels).where(eq(forecastModels.userId, targetUid));
 
   // 3. Generate Finance Transactions (at least 20-25 distinct expense days + 1-2 income transactions)
   const financeRows: Array<{
@@ -410,29 +399,49 @@ async function main() {
   console.log('OmniLife Studio: 30-Day Historical Database Seeder');
   console.log('====================================================\n');
 
-  // Primary Requested User: anshumanr699@gmail.com
-  const primaryEmail = 'anshumanr699@gmail.com';
-  const encodedEmail = Buffer.from(primaryEmail.toLowerCase())
-    .toString('base64')
-    .replace(/[^a-zA-Z0-9]/g, '')
-    .slice(0, 16);
-  const primaryUid = `usr_${encodedEmail}`; // usr_YW5zaHVtYW5yNjk5
-  const demoAnshumanUid = 'demo_' + Buffer.from(primaryEmail).toString('base64').replace(/=/g, '').toLowerCase().slice(0, 16);
+  // Developer demonstration tool only. Never runs automatically.
+  const args = process.argv.slice(2);
+  let targetEmail: string | undefined;
 
-  await seedUserData(primaryUid, primaryEmail, 'Anshuman Rai');
-  await seedUserData(demoAnshumanUid, primaryEmail, 'Anshuman Rai');
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
+    if (arg === '--email' && args[i + 1]) {
+      targetEmail = args[++i];
+      break;
+    } else if (arg.startsWith('--email=')) {
+      targetEmail = arg.slice(8);
+      break;
+    } else if (arg.includes('@') && !arg.startsWith('-')) {
+      targetEmail = arg;
+      break;
+    }
+  }
 
-  // Also seed default demo user (Alex Sharma)
-  const alexUid = 'demo_ywxlec5zagfybwfa';
-  await seedUserData(alexUid, 'alex.sharma@omnilife.ai', 'Alex Sharma');
+  if (!targetEmail) {
+    console.error('[ERROR] Missing required argument: --email <registered email>');
+    console.error('Usage: npm run db:seed -- --email <registered email>');
+    console.error('\nNOTE: This is a developer tool and NEVER runs automatically.');
+    console.error('The target user MUST already be registered in OmniLife Studio.\n');
+    process.exit(1);
+  }
+
+  const cleanEmail = targetEmail.trim().toLowerCase();
+  const allUsers = await db.select().from(users);
+  const matchedUser = allUsers.find((u) => u.email.toLowerCase() === cleanEmail);
+
+  if (!matchedUser) {
+    console.error(`\n[ABORT] User with email "${targetEmail}" is not registered in the database.`);
+    console.error('Please register this account through the application first before seeding.\n');
+    process.exit(1);
+  }
+
+  await seedUserData(matchedUser.uid, matchedUser.email, matchedUser.displayName || 'OmniLife User');
 
   console.log('====================================================');
   console.log('Database Seeding Finished Successfully! 🎉');
   console.log('====================================================');
-  console.log('Target User Credentials:');
-  console.log('  Email:    anshumanr699@gmail.com');
-  console.log('  Password: Anshuman@123');
-  console.log('  UIDs:     usr_YW5zaHVtYW5yNjk5 / demo_yw5zahvtyw5ynjk5');
+  console.log(`Seeded User: ${matchedUser.email}`);
+  console.log(`User UID:    ${matchedUser.uid}`);
   console.log('\nReady for ML Forecasting & AI Assistant analysis.');
   console.log('====================================================\n');
 }

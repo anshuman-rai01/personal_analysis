@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { Pool } from 'pg';
@@ -23,7 +24,7 @@ describe('PostgreSQL Database Integration (Optional)', () => {
       host: process.env.SQL_HOST || 'localhost',
       port: process.env.SQL_PORT ? parseInt(process.env.SQL_PORT, 10) : 5432,
       user: process.env.SQL_USER || 'postgres',
-      password: process.env.SQL_PASSWORD,
+      password: process.env.SQL_PASSWORD || '',
       database: testDbName,
       connectionTimeoutMillis: 5000,
     });

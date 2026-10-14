@@ -252,3 +252,63 @@ describe('3. Preview Fixtures Invariant Guarantees', () => {
     }
   });
 });
+
+describe('4. Zero-network preview guarantee', () => {
+  const srcDir = path.resolve(__dirname, '../../');
+
+  it('guarantees LockedPreview does not import or mount live data-fetching views', () => {
+    const lockedPreviewPath = path.join(srcDir, 'features/preview/LockedPreview.tsx');
+    const content = fs.readFileSync(lockedPreviewPath, 'utf-8');
+
+    // Live container views that execute useEffect fetches
+    const liveViews = [
+      'DashboardView',
+      'StudyView',
+      'FinanceView',
+      'HabitsView',
+      'GoalsView',
+      'ForecastingView',
+      'SimulationView',
+      'AssistantWidget',
+    ];
+
+    for (const view of liveViews) {
+      assert.equal(
+        content.includes(view),
+        false,
+        `LockedPreview must NEVER import or mount live-fetching view: ${view}`
+      );
+    }
+  });
+
+  it('guarantees DashboardContent is pure presentational and executes zero fetch calls', () => {
+    const dashboardContentPath = path.join(srcDir, 'features/dashboard/DashboardContent.tsx');
+    const content = fs.readFileSync(dashboardContentPath, 'utf-8');
+
+    assert.equal(
+      /fetch\s*\(/.test(content),
+      false,
+      'DashboardContent must never call fetch directly'
+    );
+    assert.equal(
+      content.includes('apiFetch'),
+      false,
+      'DashboardContent must never call apiFetch'
+    );
+    assert.equal(
+      content.includes('/api/'),
+      false,
+      'DashboardContent must not contain any /api/ endpoint references'
+    );
+  });
+
+  it('guarantees preview mode in App.tsx renders LockedPreview and never mounts MainApp', () => {
+    const appPath = path.join(srcDir, 'App.tsx');
+    const content = fs.readFileSync(appPath, 'utf-8');
+
+    // Locked-preview mode must exclusively return LockedPreview and AuthModal
+    assert.ok(content.includes("mode === 'locked-preview'"));
+    assert.ok(content.includes('<LockedPreview'));
+    assert.ok(content.includes('<AuthModal'));
+  });
+});

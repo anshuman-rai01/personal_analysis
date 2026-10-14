@@ -3,9 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './features/auth/AuthContext.tsx';
-import { AuthView } from './features/auth/AuthView.tsx';
+import { AuthGateProvider, useAuthGate } from './features/preview/AuthGateContext.tsx';
+import { resolveAppMode } from './features/preview/resolveAppMode.ts';
+import { LockedPreview } from './features/preview/LockedPreview.tsx';
+import { AuthModal } from './features/preview/AuthModal.tsx';
 import { DashboardView } from './features/dashboard/DashboardView.tsx';
 import { StudyView } from './features/study/StudyView.tsx';
 import { FinanceView } from './features/finance/FinanceView.tsx';
@@ -19,13 +22,26 @@ import { QuickLogModal } from './components/QuickLogModal.tsx';
 import { AlertBanner } from './components/AlertBanner.tsx';
 import { onServer500Error } from './services/apiClient.ts';
 
-function MainApp() {
-  const [activeTab, setActiveTab] = useState<ActiveTab>('dashboard');
+interface MainAppProps {
+  initialTab?: ActiveTab | null;
+  onConsumeIntendedTab?: () => void;
+}
+
+function MainApp({ initialTab, onConsumeIntendedTab }: MainAppProps) {
+  const [activeTab, setActiveTab] = useState<ActiveTab>(initialTab || 'dashboard');
   const [quickLogOpen, setQuickLogOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [assistantOpenSignal, setAssistantOpenSignal] = useState(0);
   const [dbDegraded, setDbDegraded] = useState(false);
   const [bannerDismissed, setBannerDismissed] = useState(false);
+
+  // Consume any intended tab selected during preview authentication
+  useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab);
+      onConsumeIntendedTab?.();
+    }
+  }, [initialTab, onConsumeIntendedTab]);
 
   const checkDbHealth = async () => {
     try {
@@ -48,7 +64,7 @@ function MainApp() {
     }
   };
 
-  React.useEffect(() => {
+  useEffect(() => {
     // Initial health check on app load
     checkDbHealth();
 
@@ -71,7 +87,7 @@ function MainApp() {
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         onOpenQuickLog={() => setQuickLogOpen(true)}
-        onOpenAssistant={() => setAssistantOpenSignal(s => s + 1)}
+        onOpenAssistant={() => setAssistantOpenSignal((s) => s + 1)}
       />
 
       {/* Global Degraded Database Alert Banner */}
@@ -95,7 +111,7 @@ function MainApp() {
           <DashboardView
             setActiveTab={setActiveTab}
             onOpenQuickLog={() => setQuickLogOpen(true)}
-            onOpenAssistant={() => setAssistantOpenSignal(s => s + 1)}
+            onOpenAssistant={() => setAssistantOpenSignal((s) => s + 1)}
           />
         )}
         {activeTab === 'study' && <StudyView />}
@@ -129,7 +145,7 @@ function MainApp() {
 
       {/* Floating AI Assistant Widget */}
       <AssistantWidget
-        onDataChanged={() => setRefreshKey(k => k + 1)}
+        onDataChanged={() => setRefreshKey((k) => k + 1)}
         openSignal={assistantOpenSignal}
       />
     </div>
@@ -137,9 +153,14 @@ function MainApp() {
 }
 
 function AppRoot() {
-  const { isRegistered, loading } = useAuth();
+  const { user, isRegistered, loading } = useAuth();
+  const { isModalOpen, initialMode, contextReason, intendedTab, close, consumeIntendedTab } =
+    useAuthGate();
 
-  if (loading) {
+  const mode = resolveAppMode({ loading, user, isRegistered });
+
+  // 1. Booting: Neutral splash while auth and session verify (never flash preview to signed-in users)
+  if (mode === 'booting') {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-slate-950 text-white">
         <div className="w-10 h-10 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mb-4" />
@@ -148,17 +169,36 @@ function AppRoot() {
     );
   }
 
-  if (!isRegistered) {
-    return <AuthView />;
+  // 2. Locked Preview: For unauthenticated visitors and unregistered users
+  if (mode === 'locked-preview') {
+    return (
+      <>
+        <LockedPreview />
+        <AuthModal
+          isOpen={isModalOpen}
+          initialMode={initialMode}
+          contextReason={contextReason}
+          onClose={close}
+        />
+      </>
+    );
   }
 
-  return <MainApp />;
+  // 3. Authenticated App: Registered user
+  return (
+    <MainApp
+      initialTab={intendedTab}
+      onConsumeIntendedTab={consumeIntendedTab}
+    />
+  );
 }
 
 export function App() {
   return (
     <AuthProvider>
-      <AppRoot />
+      <AuthGateProvider>
+        <AppRoot />
+      </AuthGateProvider>
     </AuthProvider>
   );
 }

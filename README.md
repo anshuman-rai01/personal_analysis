@@ -70,6 +70,27 @@ Beyond passive logging, OmniLife features a **1,200-record multivariate Machine 
   * Ensure your domain (e.g. `localhost`) is listed in Firebase Console under Authentication > Settings > Authorized domains.
   * Set `FIREBASE_PROJECT_ID` in `.env` (or ensure `projectId` is populated in `firebase-applet-config.json`).
 
+### 10. Locked Dashboard Preview & Sign-In Modal (Unauthenticated Visitors)
+* **Default Unauthenticated View**: Unauthenticated visitors opening the root page see the real dashboard layout in a locked, non-interactive preview state filled with clearly labelled sample data, replacing the previous standalone full-page sign-in screen.
+* **Visual Lock Affordances**:
+  * Persistent top ribbon: *"Locked preview · Sample data · Sign in to use your own"*.
+  * Lock icons (`lucide-react`) on all navigation tabs and hero shortcuts.
+  * Transparent capture layer over an `inert` preview DOM region displaying a lock cursor and hover hint (`Sign in to unlock`).
+  * Frosted bottom gradient fade with a centered call-to-action (*"Create a free account to see your own analytics"*).
+  * Accessible keyboard path: Top navigation bar includes explicit, focusable **Sign In** and **Register** buttons, and the ribbon contains a focusable unlock button.
+* **Zero `/api/*` Requests in Preview (Hard Guarantee)**:
+  * Preview data is bundled as static, typed fixtures (`previewData.ts`) matching backend API response interfaces.
+  * Live-fetching container views (`DashboardView`, `StudyView`, `FinanceView`, `HabitsView`, `GoalsView`, `ForecastingView`, `SimulationView`, `AssistantWidget`) are **never mounted** in preview mode; only the pure presentational `DashboardContent` is rendered with static fixtures.
+  * Zero network requests are made to any `/api/*` route while in preview mode, verified by automated unit tests and browser network monitoring.
+  * No guest IDs, mock identities, or sessions are created in localStorage or the database.
+* **Interactive Sign-In / Sign-Up Modal**:
+  * Any click on tabs, hero launchpad shortcuts (Forecasting, Simulation, Assistant, Log New Activity), cards, chart links, or the floating assistant button intercepts the action and displays an accessible modal dialog (`role="dialog"`, `aria-modal="true"`).
+  * The modal displays a targeted context line explaining the trigger (e.g. *"Sign in to use Forecasting (ML)"*).
+  * Focus is trapped inside the modal while open, body scroll is locked, and pressing `Escape` or clicking the backdrop/close button closes the modal and returns focus to the triggering element.
+  * Built using `motion/react` with smooth entrance animations (automatically disabled when `prefers-reduced-motion` is active) and responsive full-screen sheet styling on viewports below 480px.
+  * **Intent Preservation**: The user's intended destination tab is preserved in React state. Upon successful authentication, the preview unmounts and the user lands directly on their requested tab with their real account data.
+  * Signing out returns the user to the locked preview with the modal closed.
+
 ---
 
 ## 🔒 Data Isolation & Forecast Data Thresholds
